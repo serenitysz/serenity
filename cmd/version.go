@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/almeidazs/serenity/internal/version"
+	"github.com/serenitysz/serenity/internal/version"
 	"github.com/spf13/cobra"
 )
 

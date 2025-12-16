@@ -1,6 +1,6 @@
 package config
 
-import "github.com/almeidazs/serenity/internal/rules"
+import "github.com/serenitysz/serenity/internal/rules"
 
 func GenDefaultConfig() *rules.Config {
 	var OneMBInBytes int64 = 1048576

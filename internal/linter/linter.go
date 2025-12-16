@@ -11,7 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/almeidazs/serenity/internal/rules"
+	"github.com/serenitysz/serenity/internal/rules"
 )
 
 type Linter struct {

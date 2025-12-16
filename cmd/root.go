@@ -20,13 +20,13 @@ func Exec() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().String("color", "auto", "Color output: auto, off, force")
+	
 	rootCmd.PersistentFlags().Bool("verbose", false, "Print additional diagnostics and processed files")
+
+	rootCmd.PersistentFlags().String("config", "", "Path to configuration file (Auto-discovered if omitted)")
 
 	rootCmd.PersistentFlags().Int("max-issues", 20, "Limit the maximum number of reported issues (0 = unlimited)")
 
 	rootCmd.PersistentFlags().Bool("skip-parse-errors", false, "Skip files with syntax errors instead of failing")
-
-	rootCmd.PersistentFlags().String("color", "auto", "Color output: auto, off, force")
-
-	rootCmd.PersistentFlags().String("config", "", "Path to configuration file (Auto-discovered if omitted)")
 }

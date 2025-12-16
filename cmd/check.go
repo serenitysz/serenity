@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/almeidazs/serenity/internal/config"
-	"github.com/almeidazs/serenity/internal/linter"
-	"github.com/almeidazs/serenity/internal/rules"
+	"github.com/serenitysz/serenity/internal/config"
+	"github.com/serenitysz/serenity/internal/linter"
+	"github.com/serenitysz/serenity/internal/rules"
 	"github.com/spf13/cobra"
 )
 

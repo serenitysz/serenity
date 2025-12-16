@@ -1,4 +1,4 @@
-module github.com/almeidazs/serenity
+module github.com/serenitysz/serenity
 
 go 1.25.5
 

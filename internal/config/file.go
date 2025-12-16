@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/almeidazs/serenity/internal/rules"
+	"github.com/serenitysz/serenity/internal/rules"
 )
 
 func GetConfigFilePath() (path string, err error) {
