@@ -6,12 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/almeidazs/gowther/internal/linter"
+	"github.com/almeidazs/gowther/internal/rules"
 )
 
-var configFile = "gowther.json"
-
-func GetPath() (path string, err error) {
+func GetConfigFilePath() (path string, err error) {
 	path, err = os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("error to get user working directory: %w", err)
@@ -20,13 +18,12 @@ func GetPath() (path string, err error) {
 	return filepath.Join(path, "gowther.json"), nil
 }
 
-func CreateConfigFile(path string) error {
+func CreateConfigFile(cfg *rules.Config, path string) error {
 	_, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("error creating config file: %w", err)
 	}
 
-	cfg := GenDefaultConfig()
 	jsonData, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return fmt.Errorf("error marshalling JSON: %v", err)
@@ -52,8 +49,8 @@ func CheckHasConfigFile(path string) (bool, error) {
 	return true, nil
 }
 
-func ReadConfigFile(path string) (*linter.Config, error) {
-	var cfg *linter.Config
+func ReadConfigFile(path string) (*rules.Config, error) {
+	var cfg *rules.Config
 	fileBytes, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {

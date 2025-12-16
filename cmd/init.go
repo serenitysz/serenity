@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os/exec"
 
 	"github.com/almeidazs/gowther/internal/config"
 	"github.com/spf13/cobra"
@@ -10,7 +9,7 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "initializes gowther, creating a json configuration file", // TODO: change this later
+	Short: "Initializes gowther, creating a gowther.json configuration file.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runInit()
 	},
@@ -21,23 +20,28 @@ func init() {
 }
 
 func runInit() error {
-	var cmd *exec.Cmd
-
-	path, err := config.GetPath()
+	path, err := config.GetConfigFilePath()
 	if err != nil {
 		return err
 	}
 
 	exists, err := config.CheckHasConfigFile(path)
 	if err != nil {
-		return fmt.Errorf("error to find config file: %w", err)
+		return fmt.Errorf("error checking for config file: %w", err)
 	}
 
-	if !exists {
-		if err := config.CreateConfigFile(path); err != nil {
-			return err
-		}
+	if exists {
+		fmt.Println("Config file gowther.json already exists.")
+		return nil
 	}
 
-	return cmd.Start()
+	fmt.Println("Creating default gowther.json config file...")
+	cfg := config.GenDefaultConfig()
+
+	if err := config.CreateConfigFile(cfg, path); err != nil {
+		return err
+	}
+	fmt.Println("Config file created successfully.")
+
+	return nil
 }

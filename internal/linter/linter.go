@@ -16,6 +16,7 @@ type Linter struct {
 	Unsafe bool
 	Fset   *token.FileSet
 	Config *rules.Config
+	Issues []rules.Issue
 }
 
 func New(write, unsafe bool, config *rules.Config) *Linter {
@@ -24,19 +25,21 @@ func New(write, unsafe bool, config *rules.Config) *Linter {
 		Unsafe: unsafe,
 		Fset:   token.NewFileSet(),
 		Config: config,
+		Issues: []rules.Issue{},
 	}
 }
 
-func (l *Linter) ProcessPath(path string) error {
+func (l *Linter) ProcessPath(path string) ([]rules.Issue, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("error to read file info: %w", err)
 	}
 
+	var issues []rules.Issue
 	if info.IsDir() {
-		return filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+		err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 			if err != nil {
-				return err
+				return fmt.Errorf("error to read %v: %w", p, err)
 			}
 
 			if info.IsDir() {
@@ -49,25 +52,34 @@ func (l *Linter) ProcessPath(path string) error {
 			}
 
 			if strings.HasSuffix(p, ".go") && !strings.Contains(p, "vendor/") {
-				return l.ProcessFile(p)
+				issues, err = l.ProcessFile(p)
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
 		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return l.ProcessFile(path)
+	return issues, nil
 }
 
-func (l *Linter) ProcessFile(filename string) error {
+func (l *Linter) ProcessFile(filename string) ([]rules.Issue, error) {
 	src, err := os.ReadFile(filename)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("error to read file: %w", err)
 	}
 
-	if _, err = parser.ParseFile(l.Fset, filename, src, parser.ParseComments); err != nil {
-		return fmt.Errorf("parse error in %s: %v", filename, err)
+	f, err := parser.ParseFile(l.Fset, filename, src, parser.ParseComments)
+	if err != nil {
+		return nil, fmt.Errorf("parse error in %s: %v", filename, err)
 	}
 
-	return nil
+	l.Issues = append(l.Issues, rules.CheckContextFirstParam(f, l.Fset)...)
+
+	return l.Issues, nil
 }

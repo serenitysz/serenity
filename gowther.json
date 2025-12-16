@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "naming": {
+    "enabled": true,
+    "rules": {
+      "exportedIdentifiers": {
+        "severity": "warn",
+        "description": "exported identifiers must use CamelCase",
+        "pattern": "^[A-Z][a-zA-Z0-9]*$"
+      },
+      "unexportedIdentifiers": {
+        "severity": "warn",
+        "description": "unexported identifiers must use camelCase",
+        "pattern": "^[a-z][a-zA-Z0-9]*$"
+      },
+      "receiverNames": {
+        "severity": "warn",
+        "description": "method receivers should be short and consistent",
+        "maxLength": 2
+      }
+    }
+  },
+  "complexity": {
+    "enabled": true,
+    "rules": {
+      "cyclomaticComplexity": {
+        "severity": "error",
+        "threshold": 15
+      },
+      "maxFunctionLines": {
+        "severity": "warn",
+        "threshold": 80
+      },
+      "maxNestingDepth": {
+        "severity": "warn",
+        "threshold": 4
+      }
+    }
+  },
+  "bestPractices": {
+    "enabled": true,
+    "rules": {
+      "noBareReturns": {
+        "severity": "info",
+        "description": "avoid bare returns for better readability"
+      },
+      "contextFirstParam": {
+        "severity": "error",
+        "description": "context.Context must be the first parameter"
+      },
+      "noDeferInLoop": {
+        "severity": "warn",
+        "description": "avoid defer statements inside loops"
+      }
+    }
+  },
+  "errorHandling": {
+    "enabled": true,
+    "rules": {
+      "errorWrapping": {
+        "severity": "error",
+        "description": "errors must be wrapped to preserve context",
+        "requireFmtW": true
+      },
+      "errorStringFormat": {
+        "severity": "warn",
+        "case": "lower",
+        "noPunctuation": true
+      },
+      "noErrorShadowing": {
+        "severity": "error",
+        "description": "do not shadow error variables"
+      }
+    }
+  },
+  "imports": {
+    "enabled": true,
+    "rules": {
+      "noDotImports": {
+        "severity": "warn"
+      },
+      "disallowedPackages": {
+        "severity": "error",
+        "packages": [
+          "io/ioutil"
+        ]
+      }
+    }
+  },
+  "exclude": [
+    "**/vendor/**",
+    "**/*.test.go"
+  ]
+}

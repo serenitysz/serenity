@@ -1,76 +1,69 @@
 package rules
 
+import "go/token"
+
 type Config struct {
-	Schema        string                  `json:"$schema"`
-	Naming        *NamingRuleGroup        `json:"naming"`
-	Complexity    *ComplexityRuleGroup    `json:"complexity"`
-	BestPractices *BestPracticesRuleGroup `json:"bestPractices"`
-	ErrorHandling *ErrorHandlingRuleGroup `json:"errorHandling"`
-	Imports       *ImportsRuleGroup       `json:"imports"`
-	Exclude       []string                `json:"exclude"`
+	Schema        string                  `json:"$schema,omitempty"`
+	Naming        *NamingRuleGroup        `json:"naming,omitempty"`
+	Complexity    *ComplexityRuleGroup    `json:"complexity,omitempty"`
+	BestPractices *BestPracticesRuleGroup `json:"bestPractices,omitempty"`
+	ErrorHandling *ErrorHandlingRuleGroup `json:"errorHandling,omitempty"`
+	Imports       *ImportsRuleGroup       `json:"imports,omitempty"`
+	Exclude       []string                `json:"exclude,omitempty"`
 }
 
 type NamingRuleGroup struct {
 	Enabled bool         `json:"enabled"`
-	Rules   *NamingRules `json:"rules"`
+	Rules   *NamingRules `json:"rules,omitempty"`
 }
 
 type ComplexityRuleGroup struct {
 	Enabled bool             `json:"enabled"`
-	Rules   *ComplexityRules `json:"rules"`
+	Rules   *ComplexityRules `json:"rules,omitempty"`
 }
 
 type BestPracticesRuleGroup struct {
 	Enabled bool                `json:"enabled"`
-	Rules   *BestPracticesRules `json:"rules"`
+	Rules   *BestPracticesRules `json:"rules,omitempty"`
 }
 
 type ErrorHandlingRuleGroup struct {
 	Enabled bool                `json:"enabled"`
-	Rules   *ErrorHandlingRules `json:"rules"`
+	Rules   *ErrorHandlingRules `json:"rules,omitempty"`
 }
 
 type ImportsRuleGroup struct {
 	Enabled bool          `json:"enabled"`
-	Rules   *ImportsRules `json:"rules"`
+	Rules   *ImportsRules `json:"rules,omitempty"`
 }
 
 type NamingRules struct {
-	ExportedIdentifiers   *PatternRule   `json:"exported_identifiers,omitempty"`
-	UnexportedIdentifiers *PatternRule   `json:"unexported_identifiers,omitempty"`
-	ReceiverNames         *MaxLengthRule `json:"receiver_names,omitempty"`
+	ExportedIdentifiers   *PatternRule   `json:"exportedIdentifiers,omitempty"`
+	UnexportedIdentifiers *PatternRule   `json:"unexportedIdentifiers,omitempty"`
+	ReceiverNames         *MaxLengthRule `json:"receiverNames,omitempty"`
 }
 
 type ComplexityRules struct {
-	CyclomaticComplexity *ThresholdRule `json:"cyclomatic_complexity,omitempty"`
-	MaxFunctionLines     *ThresholdRule `json:"max_function_lines,omitempty"`
-	MaxNestingDepth      *ThresholdRule `json:"max_nesting_depth,omitempty"`
+	CyclomaticComplexity *ThresholdRule `json:"cyclomaticComplexity,omitempty"`
+	MaxFunctionLines     *ThresholdRule `json:"maxFunctionLines,omitempty"`
+	MaxNestingDepth      *ThresholdRule `json:"maxNestingDepth,omitempty"`
 }
 
 type BestPracticesRules struct {
-	NoBareReturns     *DescriptionRule `json:"no_bare_returns,omitempty"`
-	ContextFirstParam *DescriptionRule `json:"context_first_param,omitempty"`
-	NoDeferInLoop     *DescriptionRule `json:"no_defer_in_loop,omitempty"`
+	NoBareReturns     *DescriptionRule `json:"noBareReturns,omitempty"`
+	ContextFirstParam *DescriptionRule `json:"contextFirstParam,omitempty"`
+	NoDeferInLoop     *DescriptionRule `json:"noDeferInLoop,omitempty"`
 }
 
 type ErrorHandlingRules struct {
-	ErrorWrapping     *ErrorWrappingRule     `json:"error_wrapping,omitempty"`
-	ErrorStringFormat *ErrorStringFormatRule `json:"error_string_format,omitempty"`
-	NoErrorShadowing  *DescriptionRule       `json:"no_error_shadowing,omitempty"`
+	ErrorWrapping     *ErrorWrappingRule     `json:"errorWrapping,omitempty"`
+	ErrorStringFormat *ErrorStringFormatRule `json:"errorStringFormat,omitempty"`
+	NoErrorShadowing  *DescriptionRule       `json:"noErrorShadowing,omitempty"`
 }
 
 type ImportsRules struct {
-	NoDotImports       *SeverityRule           `json:"no_dot_imports,omitempty"`
-	DisallowedPackages *DisallowedPackagesRule `json:"disallowed_packages,omitempty"`
-}
-
-type SeverityRule struct {
-	Severity string `json:"severity"`
-}
-
-type DescriptionRule struct {
-	Severity    string `json:"severity"`
-	Description string `json:"description"`
+	NoDotImports       *SeverityRule           `json:"noDotImports,omitempty"`
+	DisallowedPackages *DisallowedPackagesRule `json:"disallowedPackages,omitempty"`
 }
 
 type PatternRule struct {
@@ -90,6 +83,11 @@ type ThresholdRule struct {
 	Threshold int    `json:"threshold"`
 }
 
+type DescriptionRule struct {
+	Severity    string `json:"severity"`
+	Description string `json:"description"`
+}
+
 type ErrorWrappingRule struct {
 	Severity    string `json:"severity"`
 	Description string `json:"description"`
@@ -102,7 +100,17 @@ type ErrorStringFormatRule struct {
 	NoPunctuation bool   `json:"noPunctuation"`
 }
 
+type SeverityRule struct {
+	Severity string `json:"severity"`
+}
+
 type DisallowedPackagesRule struct {
 	Severity string   `json:"severity"`
 	Packages []string `json:"packages"`
 }
+
+type Issue struct {
+	Pos     token.Position
+	Message string
+}
+
