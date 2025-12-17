@@ -10,7 +10,7 @@ import (
 )
 
 var statusCmd = &cobra.Command{
-	Use: "status",
+	Use:   "status",
 	Short: "Display the current status of Serenity",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return getStatus()

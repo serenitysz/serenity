@@ -23,7 +23,7 @@ func GetConfigFilePath() (string, error) {
 	return filepath.Join(wd, "serenity.json"), nil
 }
 
-func CreateConfigFile(config *rules.Config, path string) error {
+func CreateConfigFile(config *rules.LinterOptions, path string) error {
 	data, err := json.Marshal(config)
 
 	if err != nil {
@@ -51,14 +51,14 @@ func CheckHasConfigFile(path string) (bool, error) {
 	return false, err
 }
 
-func ReadConfig(path string) (*rules.Config, error) {
+func ReadConfig(path string) (*rules.LinterOptions, error) {
 	data, err := os.ReadFile(path)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var config rules.Config
+	var config rules.LinterOptions
 
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config JSON: %w", err)

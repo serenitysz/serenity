@@ -19,10 +19,10 @@ type Linter struct {
 	Unsafe      bool
 	MaxIssues   int // 0 = unlimited
 	MaxFileSize int64
-	Config      *rules.Config
+	Config      *rules.LinterOptions
 }
 
-func New(write, unsafe bool, config *rules.Config, maxIssues int, maxFileSize int64) *Linter {
+func New(write, unsafe bool, config *rules.LinterOptions, maxIssues int, maxFileSize int64) *Linter {
 	return &Linter{
 		Write:       write,
 		Unsafe:      unsafe,

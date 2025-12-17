@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"cmp"
+	// "cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -30,7 +30,7 @@ func init() {
 }
 
 func Check(cmd *cobra.Command, args []string) error {
-	var linterCfg *rules.Config
+	var linterCfg *rules.LinterOptions
 
 	path, err := config.GetConfigFilePath()
 
@@ -62,7 +62,7 @@ func Check(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	l := linter.New(write, unsafe, linterCfg, maxIssues, cmp.Or(maxFileSize, linterCfg.MaxFileSize))
+	l := linter.New(write, unsafe, linterCfg, maxIssues, maxFileSize)
 
 	for _, v := range args {
 		if v == "" || v == "." {
