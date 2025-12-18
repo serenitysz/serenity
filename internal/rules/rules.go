@@ -88,8 +88,13 @@ type BestPracticesRulesGroup struct {
 	NoBareReturns          *LinterBaseRule `json:"noBareReturns,omitempty"`
 	NoMagicNumbers         *LinterBaseRule `json:"noMagicNumbers,omitempty"`
 	UseSliceCapacity       *LinterBaseRule `json:"useSliceCapacity,omitempty"`
+	MaxParams              *MaxParams      `json:"maxParams,omitempty"`
 	AvoidEmptyStructs      *LinterBaseRule `json:"avoidEmptyStructs,omitempty"`
 	AlwaysPreferConst      *LinterBaseRule `json:"alwaysPreferConst,omitempty"`
+}
+
+type MaxParams struct {
+	Quantity *int8 `json:"quantity,omitempty"`
 }
 
 type CorrectnessRulesGroup struct {

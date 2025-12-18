@@ -26,7 +26,29 @@ func CheckContextFirstParam(
 	f *ast.File,
 	fset *token.FileSet,
 	out []Issue,
+	cfg *LinterOptions,
 ) []Issue {
+	if cfg.Linter.Use != nil && !*cfg.Linter.Use {
+		return out
+	}
+
+	var maxIssues int8
+	if cfg.Linter.Issues != nil && cfg.Linter.Issues.Max != nil {
+		maxIssues = *cfg.Linter.Issues.Max
+	}
+
+	if int8(len(out)) >= maxIssues {
+		return out
+	}
+
+	isBestPracticesOn := cfg.Linter.Rules.BestPractices == nil || (cfg.Linter.Rules.BestPractices.Use != nil && !*cfg.Linter.Rules.BestPractices.Use)
+
+	isRuleDisabled := cfg.Linter.Rules.BestPractices.UseContextInFirstParam == nil
+
+	if isBestPracticesOn || isRuleDisabled {
+		return out
+	}
+
 	ast.Inspect(f, func(n ast.Node) bool {
 		fn, ok := n.(*ast.FuncDecl)
 		if !ok {
@@ -39,9 +61,14 @@ func CheckContextFirstParam(
 		}
 
 		for i := 1; i < len(params.List); i++ {
-			if isContextType(params.List[i].Type) {
+			p := params.List[i]
+
+			if isContextType(p.Type) {
+				if int8(len(out)) >= maxIssues {
+					return false
+				}
 				out = append(out, Issue{
-					Pos:     fset.Position(params.List[i].Pos()),
+					Pos:     fset.Position(p.Pos()),
 					Message: "context.Context should be the first parameter",
 					Fix: func() {
 						FixContextFirstParam(fn)

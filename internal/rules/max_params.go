@@ -5,13 +5,30 @@ import (
 	"go/token"
 )
 
-const maxParams int = 5
-
 func CheckMaxParams(
 	f *ast.File,
 	fset *token.FileSet,
 	out []Issue,
+	cfg *LinterOptions,
 ) []Issue {
+	if cfg.Linter.Use != nil && !*cfg.Linter.Use {
+		return out
+	}
+
+	var limit int8 = 5
+	var maxIssues int8
+	if cfg.Linter.Issues != nil && cfg.Linter.Issues.Max != nil {
+		maxIssues = *cfg.Linter.Issues.Max
+	}
+
+	if int8(len(out)) >= maxIssues {
+		return out
+	}
+
+	if cfg.Linter.Rules.BestPractices.MaxParams != nil && cfg.Linter.Rules.BestPractices.MaxParams.Quantity != nil {
+		limit = *cfg.Linter.Rules.BestPractices.MaxParams.Quantity
+	}
+
 	ast.Inspect(f, func(n ast.Node) bool {
 		fn, ok := n.(*ast.FuncDecl)
 		if !ok {
@@ -19,18 +36,30 @@ func CheckMaxParams(
 		}
 
 		params := fn.Type.Params
-		if params == nil || len(params.List) < maxParams {
+		if params == nil {
+			return true
+		}
+
+		count := 0
+
+		for _, field := range params.List {
+			count += len(field.Names)
+
+			if len(field.Names) == 0 {
+				count++
+			}
+		}
+
+		if int8(count) <= limit {
 			return true
 		}
 
 		out = append(out, Issue{
 			Pos:     fset.Position(fn.Pos()),
-			Message: "functions must have up to 5 parameters",
-
-			// NOTE: isso aqui ja caia no unsafe, pq cortar os params quebraria o
-			// codigo
+			Message: "functions exceed the maximum parameter limit",
 			Fix: func() {
-				params.List = params.List[:maxParams]
+				// Unsafe
+				params.List = params.List[:limit]
 			},
 		})
 
@@ -39,3 +68,4 @@ func CheckMaxParams(
 
 	return out
 }
+
