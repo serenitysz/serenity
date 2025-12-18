@@ -90,6 +90,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 					}
 
 					local = rules.CheckContextFirstParam(f, fset, local[:0])
+					local = rules.CheckNoDotImports(f, fset, local)
 
 					if len(local) == 0 {
 						continue
@@ -105,7 +106,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 						var buf bytes.Buffer
 
 						if err := format.Node(&buf, fset, f); err == nil {
-							_ = os.WriteFile(path, buf.Bytes(), 0644)
+							_ = os.WriteFile(path, buf.Bytes(), 0o644)
 						}
 					}
 
@@ -207,19 +208,18 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 
 func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
 	src, err := os.ReadFile(path)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, path, src, parser.SkipObjectResolution)
-
 	if err != nil {
 		return nil, err
 	}
 
 	issues := rules.CheckContextFirstParam(f, fset, nil)
+	issues = rules.CheckNoDotImports(f, fset, issues)
 
 	if l.Write && len(issues) > 0 {
 		for i := range issues {
@@ -231,7 +231,7 @@ func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
 		var buf bytes.Buffer
 
 		if err := format.Node(&buf, fset, f); err == nil {
-			_ = os.WriteFile(path, buf.Bytes(), 0644)
+			_ = os.WriteFile(path, buf.Bytes(), 0o644)
 		}
 
 	}
