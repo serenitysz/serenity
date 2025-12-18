@@ -15,17 +15,11 @@ func CheckNoDotImports(
 		return out
 	}
 
-	var maxIssues int8
-	if cfg.Linter.Issues != nil && cfg.Linter.Issues.Max != nil {
-		maxIssues = *cfg.Linter.Issues.Max
-	}
-
-	if int8(len(out)) >= maxIssues {
+	if err := VerifyIssues(cfg, out); err != nil {
 		return out
 	}
 
-	isBestPracticesOn := cfg.Linter.Rules.BestPractices == nil || (cfg.Linter.Rules.BestPractices.Use != nil && !*cfg.Linter.Rules.BestPractices.Use)
-	if !isBestPracticesOn {
+	if cfg.Linter.Rules.Imports == nil {
 		return out
 	}
 

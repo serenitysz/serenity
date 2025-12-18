@@ -16,12 +16,7 @@ func CheckMaxParams(
 	}
 
 	var limit int8 = 5
-	var maxIssues int8
-	if cfg.Linter.Issues != nil && cfg.Linter.Issues.Max != nil {
-		maxIssues = *cfg.Linter.Issues.Max
-	}
-
-	if int8(len(out)) >= maxIssues {
+	if err := VerifyIssues(cfg, out); err != nil {
 		return out
 	}
 

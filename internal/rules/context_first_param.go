@@ -32,17 +32,11 @@ func CheckContextFirstParam(
 		return out
 	}
 
-	var maxIssues int8
-	if cfg.Linter.Issues != nil && cfg.Linter.Issues.Max != nil {
-		maxIssues = *cfg.Linter.Issues.Max
-	}
-
-	if int8(len(out)) >= maxIssues {
+	if err := VerifyIssues(cfg, out); err != nil {
 		return out
 	}
 
 	isBestPracticesOn := cfg.Linter.Rules.BestPractices == nil || (cfg.Linter.Rules.BestPractices.Use != nil && !*cfg.Linter.Rules.BestPractices.Use)
-
 	isRuleDisabled := cfg.Linter.Rules.BestPractices.UseContextInFirstParam == nil
 
 	if isBestPracticesOn || isRuleDisabled {
@@ -64,9 +58,6 @@ func CheckContextFirstParam(
 			p := params.List[i]
 
 			if isContextType(p.Type) {
-				if int8(len(out)) >= maxIssues {
-					return false
-				}
 				out = append(out, Issue{
 					Pos:     fset.Position(p.Pos()),
 					Message: "context.Context should be the first parameter",
@@ -87,11 +78,6 @@ func CheckContextFirstParam(
 
 func FixContextFirstParam(fn *ast.FuncDecl) bool {
 	params := fn.Type.Params
-
-	if params == nil || len(params.List) < 2 {
-		return false
-	}
-
 	ctxIndex := findContextParam(params.List)
 
 	if ctxIndex <= 0 {
