@@ -62,6 +62,10 @@ func Check(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if !cmd.Flags().Changed("max-issues") && linterCfg.Linter.Issues != nil && linterCfg.Linter.Issues.Max != nil {
+		maxIssues = int(*linterCfg.Linter.Issues.Max)
+	}
+
 	l := linter.New(write, unsafe, linterCfg, maxIssues, maxFileSize)
 
 	for _, v := range args {

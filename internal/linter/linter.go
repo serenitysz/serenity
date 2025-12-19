@@ -106,15 +106,25 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 						continue
 					}
 
-					if impIssues := imports.CheckNoDotImports(f, fset, nil, l.Config); len(impIssues) > 0 {
+					runner := rules.Runner{
+						File: f,
+						Fset: fset,
+						Cfg:  l.Config,
+					}
+
+					if impIssues := imports.CheckNoDotImports(&runner); len(impIssues) > 0 {
 						local = append(local, impIssues...)
 					}
 
 					ast.Inspect(f, func(n ast.Node) bool {
-						if res := bestpractices.CheckContextFirstParamNode(n, fset, l.Config); len(res) > 0 {
+						if l.MaxIssues > 0 && int(atomic.LoadInt64(&total)) >= l.MaxIssues {
+							return false
+						}
+						runner.Node = n
+						if res := bestpractices.CheckContextFirstParamNode(&runner); len(res) > 0 {
 							local = append(local, res...)
 						}
-						if res := bestpractices.CheckMaxParamsNode(n, fset, nil, l.Config); len(res) > 0 {
+						if res := bestpractices.CheckMaxParamsNode(&runner); len(res) > 0 {
 							local = append(local, res...)
 						}
 
@@ -123,6 +133,10 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 
 					if len(local) == 0 {
 						continue
+					}
+
+					if l.MaxIssues > 0 {
+						atomic.AddInt64(&total, int64(len(local)))
 					}
 
 					if l.Write {
@@ -215,8 +229,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 			continue
 		}
 
-		cur := int(atomic.LoadInt64(&total))
-		remaining := l.MaxIssues - cur
+		remaining := l.MaxIssues - len(final)
 
 		if remaining <= 0 {
 			stopOnce.Do(func() { close(done) })
@@ -225,7 +238,6 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 
 		if len(batch) > remaining {
 			final = append(final, batch[:remaining]...)
-			atomic.StoreInt64(&total, int64(l.MaxIssues))
 			stopOnce.Do(func() {
 				close(done)
 			})
@@ -234,7 +246,6 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 		}
 
 		final = append(final, batch...)
-		atomic.AddInt64(&total, int64(len(batch)))
 	}
 
 	return final, nil
@@ -258,16 +269,26 @@ func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
 
 	var issues []rules.Issue
 
-	if impIssues := imports.CheckNoDotImports(f, fset, nil, l.Config); len(impIssues) > 0 {
+	runner := rules.Runner{
+		File: f,
+		Fset: fset,
+		Cfg:  l.Config,
+	}
+
+	if impIssues := imports.CheckNoDotImports(&runner); len(impIssues) > 0 {
 		issues = append(issues, impIssues...)
 	}
 
 	ast.Inspect(f, func(n ast.Node) bool {
-		if res := bestpractices.CheckContextFirstParamNode(n, fset, l.Config); len(res) > 0 {
+		if l.MaxIssues > 0 && len(issues) >= l.MaxIssues {
+			return false
+		}
+		runner.Node = n
+		if res := bestpractices.CheckContextFirstParamNode(&runner); len(res) > 0 {
 			issues = append(issues, res...)
 		}
 
-		if res := bestpractices.CheckMaxParamsNode(n, fset, nil, l.Config); len(res) > 0 {
+		if res := bestpractices.CheckMaxParamsNode(&runner); len(res) > 0 {
 			issues = append(issues, res...)
 		}
 

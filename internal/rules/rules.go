@@ -1,6 +1,16 @@
 package rules
 
-import "go/token"
+import (
+	"go/ast"
+	"go/token"
+)
+
+type Runner struct {
+	File *ast.File
+	Node ast.Node
+	Fset *token.FileSet
+	Cfg  *LinterOptions
+}
 
 type LinterOptions struct {
 	Linter      LinterRules         `json:"linter"`

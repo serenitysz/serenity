@@ -2,7 +2,6 @@ package bestpractices
 
 import (
 	"go/ast"
-	"go/token"
 
 	"github.com/serenitysz/serenity/internal/rules"
 )
@@ -24,12 +23,9 @@ func isContextType(expr ast.Expr) bool {
 	return false
 }
 
-func CheckContextFirstParamNode(
-	n ast.Node,
-	fset *token.FileSet,
-	cfg *rules.LinterOptions,
-) []rules.Issue {
-	bestPractices := cfg.Linter.Rules.BestPractices
+func CheckContextFirstParamNode(runner *rules.Runner) []rules.Issue {
+	bestPractices := runner.Cfg.Linter.Rules.BestPractices
+
 	if bestPractices == nil {
 		return nil
 	}
@@ -42,7 +38,7 @@ func CheckContextFirstParamNode(
 		return nil
 	}
 
-	fn, ok := n.(*ast.FuncDecl)
+	fn, ok := runner.Node.(*ast.FuncDecl)
 	if !ok {
 		return nil
 	}
@@ -57,7 +53,7 @@ func CheckContextFirstParamNode(
 
 		if isContextType(p.Type) {
 			return []rules.Issue{{
-				Pos:     fset.Position(p.Pos()),
+				Pos:     runner.Fset.Position(p.Pos()),
 				Message: "context.Context should be the first parameter",
 				Fix: func() {
 					FixContextFirstParam(fn)
