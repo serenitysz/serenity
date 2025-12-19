@@ -4,7 +4,7 @@ import "github.com/serenitysz/serenity/internal/rules"
 
 func GenDefaultConfig() *rules.LinterOptions {
 	var OneMBInBytes int64 = 1048576
-	maxParams := int8(5)
+	var maxParams int8 = 5
 
 	config := rules.LinterOptions{
 		File: &rules.GoFileOptions{
@@ -23,7 +23,7 @@ func GenDefaultConfig() *rules.LinterOptions {
 				},
 			},
 			Issues: &rules.LinterIssuesOptions{
-				Max: Int8(15),
+				Max: Int16(15),
 				Use: Bool(true),
 			},
 		},
@@ -40,6 +40,5 @@ func GenDefaultConfig() *rules.LinterOptions {
 	return &config
 }
 
-func Bool(v bool) *bool { return &v }
-func Int8(v int8) *int8 { return &v }
-
+func Bool(v bool) *bool    { return &v }
+func Int16(v int16) *int16 { return &v }

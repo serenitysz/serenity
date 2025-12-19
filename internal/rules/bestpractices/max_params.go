@@ -23,7 +23,7 @@ func CheckMaxParamsNode(
 		return nil
 	}
 
-	var limit int16 = 5
+	var limit int8 = 5
 	if err := rules.VerifyIssues(cfg, out); err != nil {
 		return nil
 	}
@@ -53,7 +53,7 @@ func CheckMaxParamsNode(
 		}
 	}
 
-	if limit > 0 && count <= limit {
+	if limit > 0 && int8(count) <= limit {
 		return nil
 	}
 

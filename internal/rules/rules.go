@@ -40,8 +40,8 @@ type LinterRules struct {
 }
 
 type LinterIssuesOptions struct {
-	Use *bool `json:"use,omitempty"`
-	Max *int8 `json:"max,omitempty"`
+	Use *bool  `json:"use,omitempty"`
+	Max *int16 `json:"max,omitempty"`
 }
 
 type LinterBaseRule struct {
@@ -94,7 +94,7 @@ type BestPracticesRulesGroup struct {
 }
 
 type MaxParams struct {
-	Quantity *int16 `json:"quantity,omitempty"`
+	Quantity *int8 `json:"quantity,omitempty"`
 }
 
 type CorrectnessRulesGroup struct {

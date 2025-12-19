@@ -96,7 +96,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 						continue
 					}
 
-					if impIssues := rules.CheckNoDotImports(f, fset, nil, l.Config); len(impIssues) > 0 {
+					if impIssues := imports.CheckNoDotImports(f, fset, nil, l.Config); len(impIssues) > 0 {
 						local = append(local, impIssues...)
 					}
 
