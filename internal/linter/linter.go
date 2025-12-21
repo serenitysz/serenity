@@ -44,6 +44,12 @@ const (
 	finalFileIssueCap   = 32
 )
 
+var nodeRules = []func(*rules.Runner) []rules.Issue{
+	bestpractices.CheckContextFirstParamNode,
+	bestpractices.CheckMaxParamsNode,
+	complexity.CheckMaxFuncLinesNode,
+}
+
 func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
@@ -98,16 +104,10 @@ func (l *Linter) analyze(params analysisParams) ([]rules.Issue, error) {
 		}
 		runner.Node = n
 
-		if res := bestpractices.CheckContextFirstParamNode(&runner); len(res) > 0 {
-			issues = append(issues, res...)
-		}
-
-		if res := bestpractices.CheckMaxParamsNode(&runner); len(res) > 0 {
-			issues = append(issues, res...)
-		}
-
-		if res := complexity.CheckMaxFuncLinesNode(&runner); len(res) > 0 {
-			issues = append(issues, res...)
+		for _, rule := range nodeRules {
+			if res := rule(&runner); len(res) > 0 {
+				issues = append(issues, res...)
+			}
 		}
 
 		return true
