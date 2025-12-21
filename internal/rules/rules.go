@@ -25,10 +25,20 @@ type LinterOptions struct {
 }
 
 type Issue struct {
-	Pos     token.Position
+	Pos   token.Position
+	ID    uint16
+	Flags uint8
+
+	// TODO: Remove the message property and add metadata
 	Message string
-	Unsafe  bool
 }
+
+// Issue flags
+
+const (
+	IssueExperimentalFlag uint8 = 1 << iota
+	IssueFixedFlags
+)
 
 type GoFileOptions struct {
 	Exclude     *[]string `json:"exclude,omitempty"`
@@ -142,3 +152,45 @@ type ReceiverNamesRule struct {
 	Severity string `json:"severity"`
 	MaxSize  *int   `json:"maxSize,omitempty"`
 }
+
+const (
+	// ERRORS
+
+	NoErrorShadowingID uint16 = iota
+	ErrorStringFormatID
+	ErrorNotWrappedID
+
+	// IMPORTS
+
+	NoDotImportsID
+	DisallowedPackagesID
+
+	// BEST PRACTICES
+
+	NoDeferInLoopID
+	UseContextInFirstParamID
+	NoBareReturnsID
+	NoMagicNumbersID
+	UseSliceCapacityID
+	MaxParamsID
+	AvoidEmptyStructsID
+	AlwaysPreferConstID
+
+	// CORRECTNESS
+
+	UnusedReceiverID
+	UnusedParamsID
+	EmptyBlockID
+
+	// COMPLEXITY
+
+	MaxFuncLinesID
+	MaxNestingDepthID
+	CyclomaticComplexityID
+
+	// NAMING
+
+	ReceiverNameID
+	ExportedIdentifiersID
+	ImportedIdentifiersID
+)

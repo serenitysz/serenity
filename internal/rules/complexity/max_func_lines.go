@@ -41,6 +41,7 @@ func CheckMaxFuncLinesNode(runner *rules.Runner) []rules.Issue {
 	}
 
 	issues = append(issues, rules.Issue{
+		ID:      rules.MaxFuncLinesID,
 		Pos:     runner.Fset.Position(fn.Pos()),
 		Message: fmt.Sprintf("functions exceed the maximum line limit of %d (actual: %d)", limit, lines),
 	})

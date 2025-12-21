@@ -60,6 +60,7 @@ func CheckContextFirstParamNode(runner *rules.Runner) []rules.Issue {
 			}
 
 			issues = append(issues, rules.Issue{
+				ID:      rules.UseContextInFirstParamID,
 				Pos:     runner.Fset.Position(p.Pos()),
 				Message: "context.Context should be the first parameter",
 			})

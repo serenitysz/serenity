@@ -24,6 +24,7 @@ func CheckNoDotImports(runner *rules.Runner) []rules.Issue {
 			}
 
 			issues = append(issues, rules.Issue{
+				ID:      rules.NoDotImportsID,
 				Pos:     runner.Fset.Position(i.Name.NamePos),
 				Message: "Imports should not be named with '.'",
 			})
