@@ -26,7 +26,7 @@ var (
 func init() {
 	checkCmd.Flags().BoolVarP(&unsafe, "unsafe", "u", false, "Apply unsafe fixes")
 	checkCmd.Flags().BoolVarP(&write, "write", "w", false, "Write changes to files")
-	checkCmd.Flags().Int64VarP(&maxFileSize, "max-file-size", "m", int64(0), "Use a custom maximum file size in the check")
+	checkCmd.Flags().Int64VarP(&maxFileSize, "max-file-size", "m", 0, "Use a custom maximum file size in the check")
 
 	rootCmd.AddCommand(checkCmd)
 }

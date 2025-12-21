@@ -68,33 +68,3 @@ func CheckContextFirstParamNode(runner *rules.Runner) []rules.Issue {
 
 	return issues
 }
-
-func FixContextFirstParam(fn *ast.FuncDecl) bool {
-	params := fn.Type.Params
-	ctxIndex := findContextParam(params.List)
-
-	if ctxIndex <= 0 {
-		return false
-	}
-
-	ctxField := params.List[ctxIndex]
-
-	copy(
-		params.List[1:ctxIndex+1],
-		params.List[0:ctxIndex],
-	)
-
-	params.List[0] = ctxField
-
-	return true
-}
-
-func findContextParam(fields []*ast.Field) int {
-	for i, f := range fields {
-		if isContextType(f.Type) {
-			return i
-		}
-	}
-
-	return -1
-}

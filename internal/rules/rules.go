@@ -25,9 +25,8 @@ type LinterOptions struct {
 }
 
 type Issue struct {
-	Message string
-	Fix     func()
 	Pos     token.Position
+	Message string
 	Unsafe  bool
 }
 
