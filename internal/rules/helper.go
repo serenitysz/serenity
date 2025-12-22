@@ -15,3 +15,6 @@ func GetMaxIssues(cfg *LinterOptions) int16 {
 	}
 	return 0
 }
+
+func VerifySeverity() {
+}

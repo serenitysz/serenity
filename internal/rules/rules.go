@@ -25,9 +25,10 @@ type LinterOptions struct {
 }
 
 type Issue struct {
-	Pos   token.Position
-	ID    uint16
-	Flags uint8
+	Pos      token.Position
+	ID       uint16
+	Flags    uint8
+	Severity Severity
 
 	// TODO: Remove the message property and add metadata
 	Message string

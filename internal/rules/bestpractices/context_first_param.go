@@ -34,7 +34,8 @@ func CheckContextFirstParamNode(runner *rules.Runner) []rules.Issue {
 		return nil
 	}
 
-	if bestPractices.UseContextInFirstParam == nil {
+	contextFirst := bestPractices.UseContextInFirstParam
+	if contextFirst == nil {
 		return nil
 	}
 
@@ -60,9 +61,10 @@ func CheckContextFirstParamNode(runner *rules.Runner) []rules.Issue {
 			}
 
 			issues = append(issues, rules.Issue{
-				ID:      rules.UseContextInFirstParamID,
-				Pos:     runner.Fset.Position(p.Pos()),
-				Message: "context.Context should be the first parameter",
+				ID:       rules.UseContextInFirstParamID,
+				Pos:      runner.Fset.Position(p.Pos()),
+				Message:  "context.Context should be the first parameter",
+				Severity: rules.ParseSeverity(contextFirst.Severity),
 			})
 		}
 	}

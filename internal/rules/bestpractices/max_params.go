@@ -43,8 +43,7 @@ func CheckMaxParamsNode(runner *rules.Runner) []rules.Issue {
 	}
 
 	return []rules.Issue{{
-		ID:      rules.MaxParamsID,
-		Pos:     runner.Fset.Position(fn.Pos()),
-		Message: "functions exceed the maximum parameter limit",
+		ID:  rules.MaxParamsID,
+		Pos: runner.Fset.Position(fn.Pos()),
 	}}
 }
