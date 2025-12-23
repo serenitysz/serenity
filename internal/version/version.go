@@ -4,4 +4,4 @@ package version
 var Commit string
 
 // Current version of the Serenity CLI
-var Version string
+var Version string = "1.0.0"

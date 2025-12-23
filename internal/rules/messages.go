@@ -24,7 +24,7 @@ var registry = map[uint16]RuleMetadata{
 	NoBareReturnsID:          {ID: NoBareReturnsID, Name: "no-bare-returns", Template: "avoid bare returns in function %q"},
 	NoMagicNumbersID:         {ID: NoMagicNumbersID, Name: "no-magic-numbers", Template: "magic number %v detected, assign it to a constant"},
 	UseSliceCapacityID:       {ID: UseSliceCapacityID, Name: "use-slice-capacity", Template: "slice make call should specify capacity when length is known"},
-	MaxParamsID:              {ID: MaxParamsID, Name: "max-params", Template: "function exceeds the maximum parameter limit of %d"},
+	MaxParamsID:              {ID: MaxParamsID, Name: "max-params", Template: "function exceeds the maximum parameter limit of %d (actual: %d)"},
 	AvoidEmptyStructsID:      {ID: AvoidEmptyStructsID, Name: "avoid-empty-structs", Template: "empty struct declaration found"},
 	AlwaysPreferConstID:      {ID: AlwaysPreferConstID, Name: "always-prefer-const", Template: "variable %q should be a constant"},
 
@@ -49,16 +49,31 @@ func GetMetadata(id uint16) (RuleMetadata, bool) {
 	return m, ok
 }
 
-func FormatMessage(id uint16, args ...any) string {
-	meta, ok := GetMetadata(id)
+func FormatMessage(issue Issue) string {
+	meta, ok := GetMetadata(issue.ID)
 	if !ok {
-		return fmt.Sprintf("issue found (unknown rule id: %d)", id)
+		return fmt.Sprintf("issue found (unknown rule id: %d)", issue.ID)
 	}
 
-	if len(args) == 0 {
+	switch issue.ID {
+	case MaxParamsID, MaxFuncLinesID, CyclomaticComplexityID:
+		return fmt.Sprintf(meta.Template, issue.ArgInt1, issue.ArgInt2)
+
+	case MaxNestingDepthID:
+		return fmt.Sprintf(meta.Template, issue.ArgInt1)
+
+	case NoBareReturnsID,
+		AlwaysPreferConstID,
+		NoErrorShadowingID,
+		UnusedReceiverID,
+		UnusedParamsID,
+		ReceiverNameID,
+		ExportedIdentifiersID,
+		ImportedIdentifiersID,
+		DisallowedPackagesID:
+		return fmt.Sprintf(meta.Template, issue.ArgStr1)
+
+	default:
 		return meta.Template
 	}
-
-	return fmt.Sprintf(meta.Template, args...)
 }
-

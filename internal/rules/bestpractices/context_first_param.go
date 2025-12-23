@@ -23,51 +23,47 @@ func isContextType(expr ast.Expr) bool {
 	return false
 }
 
-func CheckContextFirstParamNode(runner *rules.Runner) []rules.Issue {
+func CheckContextFirstParamNode(runner *rules.Runner) {
 	bestPractices := runner.Cfg.Linter.Rules.BestPractices
 
 	if bestPractices == nil {
-		return nil
+		return
 	}
 
 	if bestPractices.Use != nil && !*bestPractices.Use {
-		return nil
+		return
 	}
 
 	contextFirst := bestPractices.UseContextInFirstParam
 	if contextFirst == nil {
-		return nil
+		return
 	}
 
 	fn, ok := runner.Node.(*ast.FuncDecl)
 	if !ok {
-		return nil
+		return
 	}
 
 	params := fn.Type.Params
 	if params == nil || len(params.List) < 2 {
-		return nil
+		return
 	}
 
 	maxIssues := rules.GetMaxIssues(runner.Cfg)
-	issues := make([]rules.Issue, 0, len(params.List))
 
 	for i := 1; i < len(params.List); i++ {
 		p := params.List[i]
 
 		if isContextType(p.Type) {
-			if maxIssues > 0 && int16(len(issues)) >= maxIssues {
+			if maxIssues > 0 && int16(len(*runner.Issues)) >= maxIssues {
 				break
 			}
 
-			issues = append(issues, rules.Issue{
+			*runner.Issues = append(*runner.Issues, rules.Issue{
 				ID:       rules.UseContextInFirstParamID,
 				Pos:      runner.Fset.Position(p.Pos()),
-				Message:  "context.Context should be the first parameter",
 				Severity: rules.ParseSeverity(contextFirst.Severity),
 			})
 		}
 	}
-
-	return issues
 }

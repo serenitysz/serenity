@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	// "cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"github.com/serenitysz/serenity/internal/config"
 	"github.com/serenitysz/serenity/internal/linter"
 	"github.com/serenitysz/serenity/internal/rules"
+	"github.com/serenitysz/serenity/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -63,8 +63,8 @@ func Check(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if !cmd.Flags().Changed("max-issues") && linterCfg.Linter.Issues != nil && linterCfg.Linter.Issues.Max != nil {
-		maxIssues = int(*linterCfg.Linter.Issues.Max)
+	if !cmd.Flags().Changed("max-issues") {
+		maxIssues = int(rules.GetMaxIssues(linterCfg))
 	}
 
 	l := linter.New(write, unsafe, linterCfg, maxIssues, maxFileSize)
@@ -87,12 +87,25 @@ func Check(cmd *cobra.Command, args []string) error {
 		issues = append(issues, i...)
 	}
 
-	if len(issues) > 0 {
-		for _, v := range issues {
-			fmt.Printf("%s:%d:%d: %s\n", v.Pos.Filename, v.Pos.Line, v.Pos.Column, v.Message)
-			// TODO: melhorar esse log dps
-		}
+	hasError := false
 
+	if len(issues) > 0 {
+		for _, issue := range issues {
+			msg := rules.FormatMessage(issue)
+
+			if issue.Severity == rules.SeverityError {
+				hasError = true
+			}
+
+			utils.FormatLog(issue, msg)
+		}
+	}
+
+	if hasError {
+		return errors.New("failed due to error")
+	}
+
+	if len(issues) > 0 {
 		return errors.New("issues found")
 	}
 

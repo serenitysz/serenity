@@ -44,7 +44,7 @@ const (
 	finalFileIssueCap   = 32
 )
 
-var nodeRules = []func(*rules.Runner) []rules.Issue{
+var nodeRules = []func(*rules.Runner){
 	bestpractices.CheckContextFirstParamNode,
 	bestpractices.CheckMaxParamsNode,
 	complexity.CheckMaxFuncLinesNode,
@@ -92,11 +92,10 @@ func (l *Linter) analyze(params analysisParams) ([]rules.Issue, error) {
 		Cfg:     l.Config,
 		Autofix: l.Write || rules.CanAutoFix(l.Config),
 		Unsafe:  l.Unsafe,
+		Issues:  &issues,
 	}
 
-	if impIssues := imports.CheckNoDotImports(&runner); len(impIssues) > 0 {
-		issues = append(issues, impIssues...)
-	}
+	imports.CheckNoDotImports(&runner)
 
 	ast.Inspect(f, func(n ast.Node) bool {
 		if params.shouldStop != nil && params.shouldStop(len(issues)) {
@@ -105,9 +104,7 @@ func (l *Linter) analyze(params analysisParams) ([]rules.Issue, error) {
 		runner.Node = n
 
 		for _, rule := range nodeRules {
-			if res := rule(&runner); len(res) > 0 {
-				issues = append(issues, res...)
-			}
+			rule(&runner)
 		}
 
 		return true

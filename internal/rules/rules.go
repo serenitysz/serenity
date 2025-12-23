@@ -10,6 +10,7 @@ type Runner struct {
 	Node     ast.Node
 	Fset     *token.FileSet
 	Cfg      *LinterOptions
+	Issues   *[]Issue
 	Autofix  bool
 	Unsafe   bool
 	Modified bool
@@ -29,9 +30,9 @@ type Issue struct {
 	ID       uint16
 	Flags    uint8
 	Severity Severity
-
-	// TODO: Remove the message property and add metadata
-	Message string
+	ArgInt1  int
+	ArgInt2  int
+	ArgStr1  string
 }
 
 // Issue flags

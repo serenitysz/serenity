@@ -1,24 +1,23 @@
 package complexity
 
 import (
-	"fmt"
 	"go/ast"
 
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-func CheckMaxFuncLinesNode(runner *rules.Runner) []rules.Issue {
+func CheckMaxFuncLinesNode(runner *rules.Runner) {
 	if runner.Cfg.Linter.Rules == nil {
-		return nil
+		return
 	}
 
 	complexity := runner.Cfg.Linter.Rules.Complexity
 	if complexity == nil {
-		return nil
+		return
 	}
 
 	if complexity.Use != nil && !*complexity.Use {
-		return nil
+		return
 	}
 
 	var limit int16 = 20
@@ -28,23 +27,27 @@ func CheckMaxFuncLinesNode(runner *rules.Runner) []rules.Issue {
 
 	fn, ok := runner.Node.(*ast.FuncDecl)
 	if !ok || fn.Body == nil {
-		return nil
+		return
 	}
-	issues := make([]rules.Issue, 0, 10)
 
 	start := runner.Fset.Position(fn.Pos()).Line
 	end := runner.Fset.Position(fn.End()).Line
 	lines := end - start + 1
 
 	if int16(lines) <= limit {
-		return nil
+		return
 	}
 
-	issues = append(issues, rules.Issue{
-		ID:      rules.MaxFuncLinesID,
-		Pos:     runner.Fset.Position(fn.Pos()),
-		Message: fmt.Sprintf("functions exceed the maximum line limit of %d (actual: %d)", limit, lines),
-	})
+	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	if maxIssues > 0 && int16(len(*runner.Issues)) >= maxIssues {
+		return
+	}
 
-	return issues
+	*runner.Issues = append(*runner.Issues, rules.Issue{
+		ID:       rules.MaxFuncLinesID,
+		Pos:      runner.Fset.Position(fn.Pos()),
+		Severity: rules.ParseSeverity(complexity.MaxFuncLines.Severity),
+		ArgInt1:  int(limit),
+		ArgInt2:  lines,
+	})
 }
