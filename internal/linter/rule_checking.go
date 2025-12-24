@@ -6,15 +6,25 @@ import (
 	"github.com/serenitysz/serenity/internal/rules/complexity"
 )
 
-func CheckAvailableRules(runner *rules.Runner) {
-	rules := runner.Cfg.Linter.Rules
-	activeRules := make([]func(*rules.Runner), 0, 20)
+func GetActiveNodeRules(cfg *rules.LinterOptions) []func(*rules.Runner) {
+	activeRules := make([]func(*rules.Runner), 0, 10)
+	r := cfg.Linter.Rules
 
-	if rules.BestPractices.MaxParams.Use != nil && *rules.BestPractices.MaxParams.Use {
-		activeRules = append(activeRules, bestpractices.CheckMaxParamsNode)
+	if bp := r.BestPractices; bp != nil && (bp.Use == nil || *bp.Use) {
+		if bp.MaxParams != nil {
+			activeRules = append(activeRules, bestpractices.CheckMaxParamsNode)
+		}
+		if bp.UseContextInFirstParam != nil {
+			activeRules = append(activeRules, bestpractices.CheckContextFirstParamNode)
+		}
 	}
 
-	if rules.Complexity.MaxFuncLines.Use != nil && *rules.Complexity.MaxFuncLines.Use {
-		activeRules = append(activeRules, complexity.CheckMaxFuncLinesNode)
+	if cp := r.Complexity; cp != nil && (cp.Use == nil || *cp.Use) {
+		if cp.MaxFuncLines != nil {
+			activeRules = append(activeRules, complexity.CheckMaxFuncLinesNode)
+		}
 	}
+
+	return activeRules
 }
+

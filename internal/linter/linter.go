@@ -42,7 +42,7 @@ const (
 	finalFileIssueCap   = 32
 )
 
-func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
+func (l *Linter) processSingleFile(path string, r []func(*rules.Runner)) ([]rules.Issue, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -50,9 +50,10 @@ func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
 
 	fset := token.NewFileSet()
 	return l.analyze(analysisParams{
-		path: path,
-		src:  src,
-		fset: fset,
+		path:  path,
+		src:   src,
+		fset:  fset,
+		rules: r,
 		shouldStop: func(currentLocalCount int) bool {
 			return l.MaxIssues > 0 && currentLocalCount >= l.MaxIssues
 		},
@@ -62,6 +63,7 @@ func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
 type analysisParams struct {
 	path       string
 	src        []byte
+	rules      []func(*rules.Runner)
 	fset       *token.FileSet
 	shouldStop func(int) bool
 }
@@ -95,7 +97,7 @@ func (l *Linter) analyze(params analysisParams) ([]rules.Issue, error) {
 		}
 		runner.Node = n
 
-		for _, rule := range nodeRules {
+		for _, rule := range params.rules {
 			rule(&runner)
 		}
 
@@ -120,13 +122,14 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	if err != nil {
 		return nil, err
 	}
+	activeRules := GetActiveNodeRules(l.Config)
 
 	if !info.IsDir() {
 		if l.MaxFileSize > 0 && info.Size() > l.MaxFileSize {
 			return nil, nil
 		}
 
-		return l.processSingleFile(root)
+		return l.processSingleFile(root, activeRules)
 	}
 
 	workers := runtime.GOMAXPROCS(0)

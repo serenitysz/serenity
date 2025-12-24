@@ -20,8 +20,8 @@ func CheckMaxParamsNode(runner *rules.Runner) {
 	var limit int8 = 5
 
 	if bestPractices.MaxParams != nil &&
-		bestPractices.MaxParams.Quantity != nil {
-		limit = *bestPractices.MaxParams.Quantity
+		bestPractices.MaxParams.Use != nil {
+		limit = int8(*bestPractices.MaxParams.Max)
 	}
 
 	fn, ok := runner.Node.(*ast.FuncDecl)
