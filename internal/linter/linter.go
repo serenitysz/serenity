@@ -16,7 +16,6 @@ import (
 	"sync/atomic"
 
 	"github.com/serenitysz/serenity/internal/rules"
-	"github.com/serenitysz/serenity/internal/rules/imports"
 )
 
 type Linter struct {
@@ -92,8 +91,6 @@ func (l *Linter) analyze(params analysisParams) ([]rules.Issue, error) {
 			return params.shouldStop != nil && params.shouldStop(len(issues))
 		},
 	}
-
-	imports.CheckNoDotImports(&runner)
 
 	ast.Inspect(f, func(n ast.Node) bool {
 		if n == nil {

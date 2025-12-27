@@ -5,6 +5,8 @@ import (
 
 	"github.com/serenitysz/serenity/internal/rules"
 	"github.com/serenitysz/serenity/internal/rules/bestpractices"
+	"github.com/serenitysz/serenity/internal/rules/complexity"
+	"github.com/serenitysz/serenity/internal/rules/imports"
 )
 
 func GetActiveRulesMap(cfg *rules.LinterOptions) map[reflect.Type][]rules.Rule {
@@ -22,12 +24,28 @@ func GetActiveRulesMap(cfg *rules.LinterOptions) map[reflect.Type][]rules.Rule {
 	}
 
 	r := cfg.Linter.Rules
+
+	if imp := r.Imports; imp != nil && (imp.Use == nil || *imp.Use) {
+		if imp.NoDotImports != nil {
+			register(&imports.NoDotImportsRule{})
+		}
+	}
+
 	if bp := r.BestPractices; bp != nil && (bp.Use == nil || *bp.Use) {
 		if bp.MaxParams != nil {
 			register(&bestpractices.MaxParamsRule{})
 		}
 		if bp.UseContextInFirstParam != nil {
 			register(&bestpractices.ContextFirstRule{})
+		}
+		if bp.AvoidEmptyStructs != nil {
+			register(&bestpractices.AvoidEmptyStructsRule{})
+		}
+	}
+
+	if cp := r.Complexity; cp != nil && (cp.Use == nil || *cp.Use) {
+		if cp.MaxFuncLines != nil {
+			register(&complexity.CheckMaxFuncLinesRule{})
 		}
 	}
 

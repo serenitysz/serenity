@@ -6,8 +6,24 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-func CheckMaxFuncLinesNode(runner *rules.Runner) {
-	if runner.Cfg.Linter.Rules == nil {
+type CheckMaxFuncLinesRule struct{}
+
+func (c *CheckMaxFuncLinesRule) Name() string {
+	return "max-func-lines"
+}
+
+func (c *CheckMaxFuncLinesRule) Targets() []ast.Node {
+	return []ast.Node{(*ast.FuncDecl)(nil)}
+}
+
+func (c *CheckMaxFuncLinesRule) Run(runner *rules.Runner, node ast.Node) {
+	if runner.ShouldStop != nil && runner.ShouldStop() {
+		return
+	}
+
+	fn := node.(*ast.FuncDecl)
+
+	if fn.Body == nil {
 		return
 	}
 
@@ -20,14 +36,14 @@ func CheckMaxFuncLinesNode(runner *rules.Runner) {
 		return
 	}
 
-	var limit int16 = 20
-	if complexity.MaxFuncLines != nil && complexity.MaxFuncLines.Max != nil {
-		limit = int16(*complexity.MaxFuncLines.Max)
+	ruleConfig := complexity.MaxFuncLines
+	if ruleConfig == nil {
+		return
 	}
 
-	fn, ok := runner.Node.(*ast.FuncDecl)
-	if !ok || fn.Body == nil {
-		return
+	var limit int16 = 20
+	if ruleConfig.Max != nil {
+		limit = int16(*ruleConfig.Max)
 	}
 
 	start := runner.Fset.Position(fn.Pos()).Line
@@ -46,8 +62,9 @@ func CheckMaxFuncLinesNode(runner *rules.Runner) {
 	*runner.Issues = append(*runner.Issues, rules.Issue{
 		ID:       rules.MaxFuncLinesID,
 		Pos:      runner.Fset.Position(fn.Pos()),
-		Severity: rules.ParseSeverity(complexity.MaxFuncLines.Severity),
+		Severity: rules.ParseSeverity(ruleConfig.Severity),
 		ArgInt1:  int(limit),
 		ArgInt2:  lines,
 	})
 }
+
