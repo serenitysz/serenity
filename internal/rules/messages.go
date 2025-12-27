@@ -70,6 +70,7 @@ func FormatMessage(issue Issue) string {
 		ReceiverNameID,
 		ExportedIdentifiersID,
 		ImportedIdentifiersID,
+		NoMagicNumbersID,
 		DisallowedPackagesID:
 		return fmt.Sprintf(meta.Template, issue.ArgStr1)
 

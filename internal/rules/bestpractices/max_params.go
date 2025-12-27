@@ -6,37 +6,41 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-func CheckMaxParamsNode(runner *rules.Runner) {
-	bestPractices := runner.Cfg.Linter.Rules.BestPractices
+type MaxParamsRule struct{}
 
-	if bestPractices == nil {
+func (r *MaxParamsRule) Name() string {
+	return "max-params"
+}
+
+func (r *MaxParamsRule) Targets() []ast.Node {
+	return []ast.Node{(*ast.FuncDecl)(nil)}
+}
+
+func (r *MaxParamsRule) Run(runner *rules.Runner, node ast.Node) {
+	if runner.ShouldStop != nil && runner.ShouldStop() {
 		return
 	}
 
-	if bestPractices.Use != nil && !*bestPractices.Use {
+	fn := node.(*ast.FuncDecl)
+
+	if fn.Type.Params == nil {
+		return
+	}
+
+	bp := runner.Cfg.Linter.Rules.BestPractices
+	if bp == nil || (bp.Use != nil && !*bp.Use) {
 		return
 	}
 
 	var limit int8 = 5
-
-	if bestPractices.MaxParams != nil &&
-		bestPractices.MaxParams.Quantity != nil {
-		limit = *bestPractices.MaxParams.Quantity
+	if bp.MaxParams != nil && bp.MaxParams.Max != nil {
+		limit = int8(*bp.MaxParams.Max)
 	}
 
-	fn, ok := runner.Node.(*ast.FuncDecl)
-	if !ok || fn.Type.Params == nil {
-		return
-	}
-
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
 	var count int16 = 0
+	maxIssues := rules.GetMaxIssues(runner.Cfg)
 
 	for _, field := range fn.Type.Params.List {
-		if maxIssues > 0 && int16(len(*runner.Issues)) >= maxIssues {
-			return
-		}
-
 		if len(field.Names) == 0 {
 			count++
 			continue
@@ -44,7 +48,11 @@ func CheckMaxParamsNode(runner *rules.Runner) {
 		count += int16(len(field.Names))
 	}
 
-	if limit > 0 && int16(limit) >= count {
+	if limit > 0 && count <= int16(limit) {
+		return
+	}
+
+	if maxIssues > 0 && int16(len(*runner.Issues)) >= maxIssues {
 		return
 	}
 

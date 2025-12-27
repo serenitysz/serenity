@@ -1,32 +1,48 @@
 package imports
 
 import (
+	"go/ast"
+
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-func CheckNoDotImports(runner *rules.Runner) {
-	imports := runner.Cfg.Linter.Rules.Imports
+type NoDotImportsRule struct{}
 
-	if imports == nil ||
-		(imports.Use != nil && !*imports.Use) ||
-		imports.NoDotImports == nil {
+func (r *NoDotImportsRule) Name() string {
+	return "no-dot-imports"
+}
+
+func (r *NoDotImportsRule) Targets() []ast.Node {
+	return []ast.Node{(*ast.ImportSpec)(nil)}
+}
+
+func (r *NoDotImportsRule) Run(runner *rules.Runner, node ast.Node) {
+	if runner.ShouldStop != nil && runner.ShouldStop() {
 		return
 	}
 
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	importSpec := node.(*ast.ImportSpec)
 
-	for _, i := range runner.File.Imports {
-		if i.Name != nil && i.Name.Name == "." {
+	imports := runner.Cfg.Linter.Rules.Imports
+	if imports == nil || (imports.Use != nil && !*imports.Use) {
+		return
+	}
 
-			if maxIssues > 0 && int16(len(*runner.Issues)) >= maxIssues {
-				break
-			}
+	if imports.NoDotImports == nil {
+		return
+	}
 
-			*runner.Issues = append(*runner.Issues, rules.Issue{
-				ID:       rules.NoDotImportsID,
-				Pos:      runner.Fset.Position(i.Name.NamePos),
-				Severity: rules.ParseSeverity(imports.NoDotImports.Severity),
-			})
+	if importSpec.Name != nil && importSpec.Name.Name == "." {
+		maxIssues := rules.GetMaxIssues(runner.Cfg)
+		if maxIssues > 0 && int16(len(*runner.Issues)) >= maxIssues {
+			return
 		}
+
+		*runner.Issues = append(*runner.Issues, rules.Issue{
+			ID:       rules.NoDotImportsID,
+			Pos:      runner.Fset.Position(importSpec.Name.NamePos),
+			Severity: rules.ParseSeverity(imports.NoDotImports.Severity),
+		})
 	}
 }
+

@@ -6,14 +6,15 @@ import (
 )
 
 type Runner struct {
-	File     *ast.File
-	Node     ast.Node
-	Fset     *token.FileSet
-	Cfg      *LinterOptions
-	Issues   *[]Issue
-	Autofix  bool
-	Unsafe   bool
-	Modified bool
+	File       *ast.File
+	Node       ast.Node
+	Fset       *token.FileSet
+	Cfg        *LinterOptions
+	Issues     *[]Issue
+	Autofix    bool
+	Unsafe     bool
+	Modified   bool
+	ShouldStop func() bool
 }
 
 type LinterOptions struct {

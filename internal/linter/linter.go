@@ -9,13 +9,13 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/serenitysz/serenity/internal/rules"
-	"github.com/serenitysz/serenity/internal/rules/imports"
 )
 
 type Linter struct {
@@ -42,7 +42,7 @@ const (
 	finalFileIssueCap   = 32
 )
 
-func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
+func (l *Linter) processSingleFile(path string, r map[reflect.Type][]rules.Rule) ([]rules.Issue, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -50,9 +50,10 @@ func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
 
 	fset := token.NewFileSet()
 	return l.analyze(analysisParams{
-		path: path,
-		src:  src,
-		fset: fset,
+		path:  path,
+		src:   src,
+		fset:  fset,
+		rules: r,
 		shouldStop: func(currentLocalCount int) bool {
 			return l.MaxIssues > 0 && currentLocalCount >= l.MaxIssues
 		},
@@ -62,6 +63,7 @@ func (l *Linter) processSingleFile(path string) ([]rules.Issue, error) {
 type analysisParams struct {
 	path       string
 	src        []byte
+	rules      map[reflect.Type][]rules.Rule
 	fset       *token.FileSet
 	shouldStop func(int) bool
 }
@@ -85,18 +87,22 @@ func (l *Linter) analyze(params analysisParams) ([]rules.Issue, error) {
 		Autofix: l.Write || rules.CanAutoFix(l.Config),
 		Unsafe:  l.Unsafe,
 		Issues:  &issues,
+		ShouldStop: func() bool {
+			return params.shouldStop != nil && params.shouldStop(len(issues))
+		},
 	}
 
-	imports.CheckNoDotImports(&runner)
-
 	ast.Inspect(f, func(n ast.Node) bool {
-		if params.shouldStop != nil && params.shouldStop(len(issues)) {
-			return false
+		if n == nil {
+			return true
 		}
-		runner.Node = n
 
-		for _, rule := range nodeRules {
-			rule(&runner)
+		runner.Node = n
+		nodeType := reflect.TypeOf(n)
+		if specificRules, found := params.rules[nodeType]; found {
+			for _, rule := range specificRules {
+				rule.Run(&runner, n)
+			}
 		}
 
 		return true
@@ -120,13 +126,14 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	if err != nil {
 		return nil, err
 	}
+	activeRules := GetActiveRulesMap(l.Config)
 
 	if !info.IsDir() {
 		if l.MaxFileSize > 0 && info.Size() > l.MaxFileSize {
 			return nil, nil
 		}
 
-		return l.processSingleFile(root)
+		return l.processSingleFile(root, activeRules)
 	}
 
 	workers := runtime.GOMAXPROCS(0)
@@ -163,9 +170,10 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 					}
 
 					localIssues, err := l.analyze(analysisParams{
-						path: path,
-						src:  src,
-						fset: fset,
+						path:  path,
+						src:   src,
+						fset:  fset,
+						rules: activeRules,
 						shouldStop: func(currentLocalCount int) bool {
 							return l.MaxIssues > 0 && int(atomic.LoadInt64(&total)) >= l.MaxIssues
 						},
