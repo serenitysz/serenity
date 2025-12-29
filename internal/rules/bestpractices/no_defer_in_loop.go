@@ -43,25 +43,28 @@ func (d *NoDeferInLoopRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
+	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	severity := rules.ParseSeverity(bp.NoDeferInLoop.Severity)
+
 	ast.Inspect(body, func(n ast.Node) bool {
+		if maxIssues > 0 && int16(len(*runner.Issues)) >= maxIssues {
+			return false
+		}
+
 		switch t := n.(type) {
 		case *ast.FuncLit:
 			return false
 
-		case *ast.ForStmt, *ast.RangeStmt:
+		case *ast.RangeStmt, *ast.ForStmt:
 			return false
+
 		case *ast.DeferStmt:
-
-			maxIssues := rules.GetMaxIssues(runner.Cfg)
-			if maxIssues > 0 && maxIssues >= int16(len(*runner.Issues)) {
-				return false
-			}
-
 			*runner.Issues = append(*runner.Issues, rules.Issue{
 				ID:       rules.NoDeferInLoopID,
 				Pos:      runner.Fset.Position(t.Pos()),
-				Severity: rules.ParseSeverity(bp.NoDeferInLoop.Severity),
+				Severity: severity,
 			})
+
 		}
 
 		return true
