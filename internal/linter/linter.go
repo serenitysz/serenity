@@ -43,38 +43,20 @@ const (
 	finalFileIssueCap   = 32
 )
 
-func (l *Linter) processSingleFile(path string, r map[reflect.Type][]rules.Rule) ([]rules.Issue, error) {
-	src, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	fset := token.NewFileSet()
-	return l.analyze(analysisParams{
-		path:  path,
-		src:   src,
-		fset:  fset,
-		rules: r,
-		shouldStop: func(currentLocalCount int) bool {
-			return l.MaxIssues > 0 && currentLocalCount >= l.MaxIssues
-		},
-	})
+type packageJob struct {
+	dirPath string
+	files   []string
 }
 
 type analysisParams struct {
-	path       string
-	src        []byte
-	rules      map[reflect.Type][]rules.Rule
+	pkgFiles   []*ast.File
+	pkgPaths   []string
 	fset       *token.FileSet
+	rules      map[reflect.Type][]rules.Rule
 	shouldStop func(int) bool
 }
 
-func (l *Linter) analyze(params analysisParams) ([]rules.Issue, error) {
-	f, err := parser.ParseFile(params.fset, params.path, params.src, 0)
-	if err != nil {
-		return nil, err
-	}
-
+func (l *Linter) analyzePackage(params analysisParams) ([]rules.Issue, error) {
 	conf := types.Config{
 		Importer: nil,
 		Error:    func(err error) {},
@@ -85,83 +67,94 @@ func (l *Linter) analyze(params analysisParams) ([]rules.Issue, error) {
 		Uses: make(map[*ast.Ident]types.Object),
 	}
 
-	conf.Check(params.path, params.fset, []*ast.File{f}, info)
+	if len(params.pkgFiles) > 0 {
+		conf.Check(params.pkgPaths[0], params.fset, params.pkgFiles, info)
+	}
 
 	mutatedObjects := make(map[types.Object]bool)
-	if l.Config.Linter.Use != nil && !*l.Config.Linter.Use {
-		return nil, nil
-	}
 
-	ast.Inspect(f, func(n ast.Node) bool {
-		switch t := n.(type) {
-		case *ast.AssignStmt:
-			for _, lhs := range t.Lhs {
-				if id, ok := lhs.(*ast.Ident); ok {
-					if obj := info.Uses[id]; obj != nil {
-						mutatedObjects[obj] = true
+	if l.Config.Linter.Use == nil || *l.Config.Linter.Use {
+		for _, f := range params.pkgFiles {
+			ast.Inspect(f, func(n ast.Node) bool {
+				switch t := n.(type) {
+				case *ast.AssignStmt:
+					for _, lhs := range t.Lhs {
+						if id, ok := lhs.(*ast.Ident); ok {
+							if obj := info.Uses[id]; obj != nil {
+								mutatedObjects[obj] = true
+							}
+						}
+					}
+				case *ast.IncDecStmt:
+					if id, ok := t.X.(*ast.Ident); ok {
+						if obj := info.Uses[id]; obj != nil {
+							mutatedObjects[obj] = true
+						}
+					}
+				case *ast.UnaryExpr:
+					if t.Op == token.AND {
+						if id, ok := t.X.(*ast.Ident); ok {
+							if obj := info.Uses[id]; obj != nil {
+								mutatedObjects[obj] = true
+							}
+						}
 					}
 				}
-			}
-		case *ast.IncDecStmt:
-			if id, ok := t.X.(*ast.Ident); ok {
-				if obj := info.Uses[id]; obj != nil {
-					mutatedObjects[obj] = true
-				}
-			}
-		case *ast.UnaryExpr:
-			if t.Op == token.AND {
-				if id, ok := t.X.(*ast.Ident); ok {
-					if obj := info.Uses[id]; obj != nil {
-						mutatedObjects[obj] = true
-					}
-				}
-			}
+				return true
+			})
 		}
-		return true
-	})
-
-	issues := make([]rules.Issue, initialFileIssueCap, finalFileIssueCap)
-
-	runner := rules.Runner{
-		File:           f,
-		Fset:           params.fset,
-		Cfg:            l.Config,
-		Autofix:        l.Write || rules.CanAutoFix(l.Config),
-		Unsafe:         l.Unsafe,
-		Issues:         &issues,
-		MutatedObjects: mutatedObjects,
-		ShouldStop: func() bool {
-			return params.shouldStop != nil && params.shouldStop(len(issues))
-		},
-		TypesInfo: info,
 	}
 
-	ast.Inspect(f, func(n ast.Node) bool {
-		if n == nil {
+	estimatedIssues := len(params.pkgFiles) * 8
+	allIssues := make([]rules.Issue, 0, estimatedIssues)
+
+	for i, f := range params.pkgFiles {
+		filePath := params.pkgPaths[i]
+
+		issues := make([]rules.Issue, 0, finalFileIssueCap)
+
+		runner := rules.Runner{
+			File:           f,
+			Fset:           params.fset,
+			Cfg:            l.Config,
+			Autofix:        l.Write || rules.CanAutoFix(l.Config),
+			Unsafe:         l.Unsafe,
+			Issues:         &issues,
+			MutatedObjects: mutatedObjects,
+			ShouldStop: func() bool {
+				return params.shouldStop != nil && params.shouldStop(len(allIssues)+len(issues))
+			},
+			TypesInfo: info,
+		}
+
+		ast.Inspect(f, func(n ast.Node) bool {
+			if n == nil {
+				return true
+			}
+
+			nodeType := reflect.TypeOf(n)
+			if specificRules, found := params.rules[nodeType]; found {
+				for _, rule := range specificRules {
+					rule.Run(&runner, n)
+				}
+			}
+
 			return true
-		}
+		})
 
-		nodeType := reflect.TypeOf(n)
-		if specificRules, found := params.rules[nodeType]; found {
-			for _, rule := range specificRules {
-				rule.Run(&runner, n)
-			}
-		}
+		allIssues = append(allIssues, issues...)
 
-		return true
-	})
-
-	if runner.Modified {
-		var buf bytes.Buffer
-
-		if err := format.Node(&buf, params.fset, f); err == nil {
-			if err := os.WriteFile(params.path, buf.Bytes(), defaultFileMode); err != nil {
-				return issues, fmt.Errorf("failed to write file %s: %w", params.path, err)
+		if runner.Modified {
+			var buf bytes.Buffer
+			if err := format.Node(&buf, params.fset, f); err == nil {
+				if err := os.WriteFile(filePath, buf.Bytes(), defaultFileMode); err != nil {
+					return allIssues, fmt.Errorf("failed to write file %s: %w", filePath, err)
+				}
 			}
 		}
 	}
 
-	return issues, nil
+	return allIssues, nil
 }
 
 func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
@@ -169,6 +162,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	activeRules := GetActiveRulesMap(l.Config)
 
 	if !info.IsDir() {
@@ -176,19 +170,35 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 			return nil, nil
 		}
 
-		return l.processSingleFile(root, activeRules)
+		fset := token.NewFileSet()
+		src, err := os.ReadFile(root)
+		if err != nil {
+			return nil, err
+		}
+		f, err := parser.ParseFile(fset, root, src, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		return l.analyzePackage(analysisParams{
+			pkgFiles: []*ast.File{f},
+			pkgPaths: []string{root},
+			fset:     fset,
+			rules:    activeRules,
+			shouldStop: func(current int) bool {
+				return l.MaxIssues > 0 && current >= l.MaxIssues
+			},
+		})
 	}
 
 	workers := runtime.GOMAXPROCS(0)
 
-	channelBufferMultiplier := workers * 4
-	paths := make(chan string, channelBufferMultiplier)
+	pkgJobs := make(chan packageJob, workers*2)
 	results := make(chan []rules.Issue, workers)
-
 	done := make(chan struct{})
 	var stopOnce sync.Once
 
-	var total int64
+	var totalIssues int64
 	var wg sync.WaitGroup
 	wg.Add(workers)
 
@@ -197,34 +207,49 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 			defer wg.Done()
 
 			for {
-				fset := token.NewFileSet()
-
 				select {
 				case <-done:
 					return
-				case path, ok := <-paths:
+				case job, ok := <-pkgJobs:
 					if !ok {
 						return
 					}
 
-					src, err := os.ReadFile(path)
-					if err != nil {
+					fset := token.NewFileSet()
+					var pkgFiles []*ast.File
+					var pkgPaths []string
+
+					for _, path := range job.files {
+						src, err := os.ReadFile(path)
+						if err != nil {
+							continue
+						}
+
+						f, err := parser.ParseFile(fset, path, src, 0)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Parse error in %s: %v\n", path, err)
+							continue
+						}
+
+						pkgFiles = append(pkgFiles, f)
+						pkgPaths = append(pkgPaths, path)
+					}
+
+					if len(pkgFiles) == 0 {
 						continue
 					}
 
-					localIssues, err := l.analyze(analysisParams{
-						path:  path,
-						src:   src,
-						fset:  fset,
-						rules: activeRules,
-						shouldStop: func(currentLocalCount int) bool {
-							return l.MaxIssues > 0 && int(atomic.LoadInt64(&total)) >= l.MaxIssues
+					localIssues, err := l.analyzePackage(analysisParams{
+						pkgFiles: pkgFiles,
+						pkgPaths: pkgPaths,
+						fset:     fset,
+						rules:    activeRules,
+						shouldStop: func(current int) bool {
+							return l.MaxIssues > 0 && int(atomic.LoadInt64(&totalIssues)) >= l.MaxIssues
 						},
 					})
 					if err != nil {
-						if localIssues != nil {
-							fmt.Fprintf(os.Stderr, "%v\n", err)
-						}
+						fmt.Fprintf(os.Stderr, "Package analysis error: %v\n", err)
 						continue
 					}
 
@@ -233,7 +258,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 					}
 
 					if l.MaxIssues > 0 {
-						atomic.AddInt64(&total, int64(len(localIssues)))
+						atomic.AddInt64(&totalIssues, int64(len(localIssues)))
 					}
 
 					out := make([]rules.Issue, len(localIssues))
@@ -250,6 +275,8 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	}
 
 	go func() {
+		pendingPackages := make(map[string][]string)
+
 		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return nil
@@ -265,7 +292,6 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 				if d.Name() == "vendor" || d.Name() == ".git" {
 					return filepath.SkipDir
 				}
-
 				return nil
 			}
 
@@ -280,16 +306,20 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 				}
 			}
 
-			select {
-			case paths <- path:
-			case <-done:
-				return filepath.SkipAll
-			}
-
+			dir := filepath.Dir(path)
+			pendingPackages[dir] = append(pendingPackages[dir], path)
 			return nil
 		})
 
-		close(paths)
+		for dir, files := range pendingPackages {
+			select {
+			case pkgJobs <- packageJob{dirPath: dir, files: files}:
+			case <-done:
+				break
+			}
+		}
+
+		close(pkgJobs)
 	}()
 
 	go func() {
