@@ -25,7 +25,7 @@ func (d *NoDeferInLoopRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	bp := runner.Cfg.Linter.Rules.BestPractices
-	if bp == nil || (bp.Use != nil && !*bp.Use) || bp.NoDeferInLoop == nil {
+	if bp == nil || (bp.Use != nil && !*bp.Use) || bp.NoDeferInLoop == nil || (bp.NoDeferInLoop.Use != nil && !*bp.NoDeferInLoop.Use) {
 		return
 	}
 

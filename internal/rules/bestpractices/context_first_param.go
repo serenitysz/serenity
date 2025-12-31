@@ -28,13 +28,14 @@ func (c *ContextFirstRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	bp := runner.Cfg.Linter.Rules.BestPractices
-	if bp == nil || (bp.Use != nil && !*bp.Use) || bp.UseContextInFirstParam == nil {
+	if bp == nil || (bp.Use != nil && !*bp.Use) || bp.UseContextInFirstParam == nil || (bp.UseContextInFirstParam.Use != nil && !*bp.UseContextInFirstParam.Use) {
 		return
 	}
 
 	cf := bp.UseContextInFirstParam
 	params := fn.Type.Params.List
 	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	severity := rules.ParseSeverity(cf.Severity)
 
 	for i := 1; i < len(params); i++ {
 		p := params[i]
@@ -47,7 +48,7 @@ func (c *ContextFirstRule) Run(runner *rules.Runner, node ast.Node) {
 			*runner.Issues = append(*runner.Issues, rules.Issue{
 				ID:       rules.UseContextInFirstParamID,
 				Pos:      runner.Fset.Position(p.Pos()),
-				Severity: rules.ParseSeverity(cf.Severity),
+				Severity: severity,
 			})
 		}
 	}

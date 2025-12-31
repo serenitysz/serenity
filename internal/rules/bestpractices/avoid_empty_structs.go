@@ -22,7 +22,7 @@ func (a *AvoidEmptyStructsRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	bp := runner.Cfg.Linter.Rules.BestPractices
-	if bp == nil || (bp.Use != nil && !*bp.Use) || bp.AvoidEmptyStructs == nil {
+	if bp == nil || (bp.Use != nil && !*bp.Use) || bp.AvoidEmptyStructs == nil || (bp.AvoidEmptyStructs.Use != nil && !*bp.AvoidEmptyStructs.Use) {
 		return
 	}
 

@@ -28,9 +28,12 @@ func (a *AlwaysPreferConstRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	bp := runner.Cfg.Linter.Rules.BestPractices
-	if bp == nil || (bp.Use != nil && !*bp.Use) || bp.AlwaysPreferConst == nil {
+	if bp == nil || (bp.Use != nil && !*bp.Use) || bp.AlwaysPreferConst == nil || (bp.AlwaysPreferConst.Use != nil && !*bp.AlwaysPreferConst.Use) {
 		return
 	}
+
+	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	severity := rules.ParseSeverity(bp.AlwaysPreferConst.Severity)
 
 	for i, name := range v.Names {
 		obj := runner.TypesInfo.Defs[name]
@@ -52,7 +55,6 @@ func (a *AlwaysPreferConstRule) Run(runner *rules.Runner, node ast.Node) {
 		}
 
 		if !runner.MutatedObjects[obj] {
-			maxIssues := rules.GetMaxIssues(runner.Cfg)
 			if maxIssues > 0 && int16(len(*runner.Issues)) >= maxIssues {
 				return
 			}
@@ -60,7 +62,7 @@ func (a *AlwaysPreferConstRule) Run(runner *rules.Runner, node ast.Node) {
 			*runner.Issues = append(*runner.Issues, rules.Issue{
 				ID:       rules.AlwaysPreferConstID,
 				Pos:      runner.Fset.Position(name.Pos()),
-				Severity: rules.ParseSeverity(bp.AlwaysPreferConst.Severity),
+				Severity: severity,
 				ArgStr1:  name.Name,
 			})
 		}

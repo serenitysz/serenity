@@ -28,7 +28,7 @@ func (r *NoDotImportsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if imports.NoDotImports == nil {
+	if imports.NoDotImports == nil || (imports.NoDotImports.Use != nil && !*imports.NoDotImports.Use) {
 		return
 	}
 

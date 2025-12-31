@@ -53,6 +53,13 @@ func GetActiveRulesMap(cfg *rules.LinterOptions) map[reflect.Type][]rules.Rule {
 		if bp.NoDeferInLoop != nil {
 			register(&bestpractices.NoDeferInLoopRule{})
 		}
+
+		if bp.UseSliceCapacity != nil {
+			register(&bestpractices.UseSliceCapacityRule{})
+		}
+		if bp.NoBareReturns != nil {
+			register(&bestpractices.NoBareReturnsRule{})
+		}
 	}
 
 	if cp := r.Complexity; cp != nil && (cp.Use == nil || *cp.Use) {
