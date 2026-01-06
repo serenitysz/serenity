@@ -114,15 +114,21 @@ func marshalConfigByExt(config *rules.LinterOptions, path string) ([]byte, error
 		return nil, fmt.Errorf("config file has no extension: %s", path)
 	}
 
+	cfg := *config
+
+	if ext != ".json" {
+		cfg.Schema = ""
+	}
+
 	switch ext {
 	case ".json":
-		return json.MarshalIndent(config, "", "\t")
+		return json.MarshalIndent(&cfg, "", "\t")
 
 	case ".toml":
-		return toml.Marshal(config)
+		return toml.Marshal(&cfg)
 
 	case ".yml", ".yaml":
-		return yaml.Marshal(config)
+		return yaml.Marshal(&cfg)
 
 	default:
 		return nil, fmt.Errorf(

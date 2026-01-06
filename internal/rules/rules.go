@@ -23,7 +23,7 @@ type Runner struct {
 
 type LinterOptions struct {
 	Linter      LinterRules         `json:"linter"`
-	Schema      string              `json:"$schema"`
+	Schema      string              `json:"$schema" yaml:"$schema,omitempty" toml:"$schema,omitempty"`
 	File        *GoFileOptions      `json:"go,omitempty"`
 	Extends     *[]string           `json:"extends,omitempty"`
 	Assistance  *AssistanceOptions  `json:"assistance,omitempty"`
