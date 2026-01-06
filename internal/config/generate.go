@@ -39,12 +39,12 @@ func GenDefaultConfig(autofix *bool) *rules.LinterOptions {
 
 func GenStrictDefaultConfig(autofix *bool) *rules.LinterOptions {
 	var (
-		oneMB           int64 = 1 * 1024 * 1024
-		maxParams             = uint16(4)
-		maxFuncLines          = 40
-		maxNesting            = 3
-		maxCyclomatic         = 8
-		receiverMaxSize       = 1
+		oneMB           int64  = 1 * 1024 * 1024
+		maxParams       uint16 = 4
+		maxFuncLines    uint16 = 40
+		maxNesting      uint16 = 3
+		maxCyclomatic   uint16 = 8
+		receiverMaxSize        = 1
 	)
 
 	return &rules.LinterOptions{
@@ -108,9 +108,9 @@ func GenStrictDefaultConfig(autofix *bool) *rules.LinterOptions {
 					AlwaysPreferConst: &rules.LinterBaseRule{
 						Severity: "error",
 					},
-					MaxParams: &rules.LinterIssuesOptions{
-						Use: true,
-						Max: maxParams,
+					MaxParams: &rules.AnyMaxValueBasedRule{
+						Max:      &maxParams,
+						Severity: "error",
 					},
 				},
 				Correctness: &rules.CorrectnessRulesGroup{

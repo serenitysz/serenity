@@ -79,8 +79,8 @@ type LinterBaseRule struct {
 }
 
 type AnyMaxValueBasedRule struct {
-	Severity string `json:"severity" yaml:"severity" toml:"severity"`
-	Max      *int   `json:"max,omitempty" yaml:"max,omitempty" toml:"max,omitempty"`
+	Severity string  `json:"severity" yaml:"severity" toml:"severity"`
+	Max      *uint16 `json:"max,omitempty" yaml:"max,omitempty" toml:"max,omitempty"`
 }
 
 type AnyPatternBasedRule struct {

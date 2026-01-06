@@ -85,7 +85,9 @@ func ApplyRecommended(cfg *rules.LinterOptions) {
 		rulesGroup.BestPractices.UseContextInFirstParam = &rules.LinterBaseRule{Severity: "warn"}
 	}
 	if rulesGroup.BestPractices.MaxParams == nil {
-		rulesGroup.BestPractices.MaxParams = &rules.LinterIssuesOptions{Max: 5, Use: true}
+		var m uint16 = 5
+
+		rulesGroup.BestPractices.MaxParams = &rules.AnyMaxValueBasedRule{Max: &m, Severity: "warn"}
 	}
 	if rulesGroup.BestPractices.AvoidEmptyStructs == nil {
 		rulesGroup.BestPractices.AvoidEmptyStructs = &rules.LinterBaseRule{Severity: "warn"}
@@ -120,7 +122,7 @@ func ApplyRecommended(cfg *rules.LinterOptions) {
 	}
 
 	if rulesGroup.Complexity.MaxFuncLines.Max == nil {
-		m := 20
+		var m uint16 = 20
 
 		rulesGroup.Complexity.MaxFuncLines.Max = &m
 	}

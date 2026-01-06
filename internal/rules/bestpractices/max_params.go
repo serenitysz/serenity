@@ -36,7 +36,7 @@ func (r *MaxParamsRule) Run(runner *rules.Runner, node ast.Node) {
 	var limit uint16 = 5
 
 	if bp.MaxParams != nil {
-		limit = bp.MaxParams.Max
+		limit = *bp.MaxParams.Max
 	}
 
 	var count uint16
