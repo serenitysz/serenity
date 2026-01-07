@@ -3,12 +3,14 @@ package cmd
 import (
 	"os"
 
+	"github.com/serenitysz/serenity/internal/version"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: false,
+	Version:       version.Version,
 	Use:           "serenity <command> [flags]",
 	Short:         "Serenity is an aggressive, no-noise and ultra fast Go linter",
 }
