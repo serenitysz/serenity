@@ -2,7 +2,7 @@ package rules
 
 func CanAutoFix(cfg *LinterOptions) bool {
 	return cfg.Assistance != nil &&
-		cfg.Assistance.Use != nil && *cfg.Assistance.Use &&
+		cfg.Assistance.Use &&
 		cfg.Assistance.AutoFix != nil && *cfg.Assistance.AutoFix
 }
 

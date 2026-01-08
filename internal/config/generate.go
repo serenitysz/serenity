@@ -25,12 +25,12 @@ func GenDefaultConfig(autofix *bool) *rules.LinterOptions {
 			},
 		},
 		Performance: &rules.PerformanceOptions{
-			Use:     Ptr(true),
+			Use:     true,
 			Caching: Ptr(true),
 		},
 		Assistance: &rules.AssistanceOptions{
 			AutoFix: autofix,
-			Use:     Ptr(true),
+			Use:     true,
 		},
 	}
 
@@ -160,12 +160,12 @@ func GenStrictDefaultConfig(autofix *bool) *rules.LinterOptions {
 		},
 		Performance: &rules.PerformanceOptions{
 			Threads: nil,
-			Use:     Ptr(true),
+			Use:     true,
 			Caching: Ptr(true),
 		},
 		Assistance: &rules.AssistanceOptions{
 			AutoFix: autofix,
-			Use:     Ptr(true),
+			Use:     true,
 		},
 	}
 }

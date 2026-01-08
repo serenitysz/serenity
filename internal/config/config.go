@@ -63,7 +63,7 @@ func ApplyRecommended(cfg *rules.LinterOptions) {
 		use := true
 
 		assistance = &rules.AssistanceOptions{
-			Use:     &use,
+			Use:     use,
 			AutoFix: &use,
 		}
 	}

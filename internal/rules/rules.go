@@ -62,13 +62,13 @@ type GoFileOptions struct {
 }
 
 type PerformanceOptions struct {
-	Use     *bool `json:"use,omitempty" yaml:"use,omitempty" toml:"use,omitempty"`
+	Use     bool  `json:"use,omitempty" yaml:"use,omitempty" toml:"use,omitempty"`
 	Threads *int  `json:"threads,omitempty" yaml:"threads,omitempty" toml:"threads,omitempty"`
 	Caching *bool `json:"caching,omitempty" yaml:"caching,omitempty" toml:"caching,omitempty"`
 }
 
 type AssistanceOptions struct {
-	Use     *bool `json:"use,omitempty" yaml:"use,omitempty" toml:"use,omitempty"`
+	Use     bool  `json:"use,omitempty" yaml:"use,omitempty" toml:"use,omitempty"`
 	AutoFix *bool `json:"autofix,omitempty" yaml:"autofix,omitempty" toml:"autofix,omitempty"`
 }
 
