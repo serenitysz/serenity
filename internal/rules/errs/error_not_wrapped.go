@@ -2,6 +2,7 @@ package errs
 
 import (
 	"go/ast"
+	"go/token"
 
 	"github.com/serenitysz/serenity/internal/rules"
 )
@@ -26,7 +27,7 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	cfg := runner.Cfg.Linter.Rules.Errors
-	
+
 	if cfg == nil || !cfg.Use || cfg.ErrorNotWrapped == nil {
 		return
 	}
@@ -41,6 +42,24 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 
 	if !ok || ident.Name == "_" || ident.Name == "nil" {
 		return
+	}
+
+	if runner.Cfg.ShouldAutofix() {
+		ret.Results[0] = &ast.CallExpr{
+			Fun: &ast.SelectorExpr{
+				X:   ast.NewIdent("fmt"),
+				Sel: ast.NewIdent("Errorf"),
+			},
+			Args: []ast.Expr{
+				&ast.BasicLit{
+					Kind:  token.STRING,
+					Value: `"%w"`,
+				},
+				ident,
+			},
+		}
+
+		runner.Modified = true
 	}
 
 	*runner.IssuesCount++
