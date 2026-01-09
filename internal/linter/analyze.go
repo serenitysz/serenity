@@ -25,9 +25,7 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 	}
 
 	if len(params.pkgFiles) > 0 {
-		if _, err := conf.Check(params.pkgPaths[0], params.fset, params.pkgFiles, info); err != nil {
-			return nil, exception.InternalError("%v", err)
-		}
+		conf.Check(params.pkgPaths[0], params.fset, params.pkgFiles, info)
 	}
 
 	mutatedObjects := make(map[types.Object]bool)

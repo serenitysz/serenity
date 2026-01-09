@@ -7,6 +7,7 @@ import (
 	"github.com/serenitysz/serenity/internal/rules/bestpractices"
 	"github.com/serenitysz/serenity/internal/rules/complexity"
 	"github.com/serenitysz/serenity/internal/rules/correctness"
+	"github.com/serenitysz/serenity/internal/rules/errs"
 	"github.com/serenitysz/serenity/internal/rules/imports"
 	"github.com/serenitysz/serenity/internal/rules/naming"
 )
@@ -37,6 +38,12 @@ func GetActiveRulesMap(cfg *rules.LinterOptions) map[reflect.Type][]rules.Rule {
 
 		if imp.DisallowedPackages != nil {
 			register(&imports.DisallowedPackagesRule{})
+		}
+	}
+
+	if err := r.Errors; err != nil && err.Use {
+		if err.ErrorStringFormat != nil {
+			register(&errs.ErrorStringFormatRule{})
 		}
 	}
 
