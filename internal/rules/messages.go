@@ -51,6 +51,7 @@ func GetMetadata(id uint16) (RuleMetadata, bool) {
 
 func FormatMessage(issue Issue) string {
 	meta, ok := GetMetadata(issue.ID)
+
 	if !ok {
 		return fmt.Sprintf("issue found (unknown rule id: %d)", issue.ID)
 	}

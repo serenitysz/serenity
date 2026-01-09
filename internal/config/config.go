@@ -2,13 +2,13 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
@@ -16,19 +16,19 @@ func Read(path string) (*rules.LinterOptions, error) {
 	data, err := os.ReadFile(path)
 
 	if err != nil {
-		return nil, err
+		return nil, exception.InternalError("%v", err)
 	}
 
 	ext := strings.ToLower(filepath.Ext(path))
 
 	if ext == "" {
-		return nil, fmt.Errorf("config file has no extension: %s", path)
+		return nil, exception.InternalError("config file has no extension: %s", path)
 	}
 
 	var cfg rules.LinterOptions
 
 	if err := unmarshalByExt(ext, data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config %q: %w", path, err)
+		return nil, exception.InternalError("failed to parse config %q: %w", path, err)
 	}
 
 	return &cfg, nil
@@ -46,7 +46,7 @@ func unmarshalByExt(ext string, data []byte, out any) error {
 		return yaml.Unmarshal(data, out)
 
 	default:
-		return fmt.Errorf(
+		return exception.InternalError(
 			"unsupported config format %q (supported: JSON, TOML, YAML, YML)",
 			ext,
 		)

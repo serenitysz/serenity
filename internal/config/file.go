@@ -2,13 +2,13 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
@@ -30,7 +30,7 @@ func Exists(path string) (bool, error) {
 		return false, nil
 	}
 
-	return false, err
+	return false, exception.InternalError("%v", err)
 }
 
 func SearchConfigPath() (string, error) {
@@ -41,14 +41,14 @@ func SearchConfigPath() (string, error) {
 	wd, err := os.Getwd()
 
 	if err != nil {
-		return "", fmt.Errorf("cannot get working directory: %w", err)
+		return "", exception.InternalError("cannot get working directory: %w", err)
 	}
 
 	if path, ok := Scan(wd); ok {
 		return path, nil
 	}
 
-	return "", fmt.Errorf(
+	return "", exception.InternalError(
 		"no serenity config file found (looked for %v). Run `serenity init`",
 		CANDIDATES,
 	)
@@ -80,11 +80,11 @@ func CreateConfigFile(config *rules.LinterOptions, path string) error {
 	data, err := marshalConfigByExt(config, path)
 
 	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+		return exception.InternalError("failed to marshal config: %w", err)
 	}
 
 	if err := os.WriteFile(path, data, 0o644); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
+		return exception.InternalError("failed to write config file: %w", err)
 	}
 
 	return nil
@@ -98,9 +98,9 @@ func getFromEnv() (string, error) {
 	}
 
 	if ok, err := Exists(env); err != nil {
-		return "", err
+		return "", exception.InternalError("%v", err)
 	} else if !ok {
-		return "", fmt.Errorf("SERENITY_CONFIG_PATH points to a non-existent file: %s", env)
+		return "", exception.InternalError("SERENITY_CONFIG_PATH points to a non-existent file: %s", env)
 	}
 
 	return env, nil
@@ -127,7 +127,7 @@ func marshalConfigByExt(config *rules.LinterOptions, path string) ([]byte, error
 		return yaml.Marshal(&cfg)
 
 	default:
-		return nil, fmt.Errorf(
+		return nil, exception.InternalError(
 			"unsupported config format %q (supported: JSON, TOML, YAML, YML)",
 			ext,
 		)

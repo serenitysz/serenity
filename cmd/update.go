@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/creativeprojects/go-selfupdate"
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/render"
 	"github.com/spf13/cobra"
 )
@@ -26,7 +26,7 @@ func init() {
 
 func update(ctx context.Context) error {
 	if rootCmd.Version == "" {
-		return errors.New("current version is not set")
+		return exception.InternalError("current version is not set")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -38,7 +38,7 @@ func update(ctx context.Context) error {
 	latest, found, err := selfupdate.DetectLatest(ctx, selfupdate.ParseSlug(slug))
 
 	if err != nil {
-		return fmt.Errorf("failed to check latest version: %w", err)
+		return exception.InternalError("failed to check latest version: %w", err)
 	}
 
 	if !found || latest.LessOrEqual(rootCmd.Version) {
@@ -50,13 +50,13 @@ func update(ctx context.Context) error {
 	exe, err := os.Executable()
 
 	if err != nil {
-		return fmt.Errorf("failed to locate executable: %w", err)
+		return exception.InternalError("failed to locate executable: %w", err)
 	}
 
 	fmt.Printf("Updating Serenity from %s to %s...\n", render.Paint(rootCmd.Version, render.Gray), render.Paint(latest.Version(), render.Gray))
 
 	if err := selfupdate.UpdateTo(ctx, latest.AssetURL, latest.AssetName, exe); err != nil {
-		return fmt.Errorf("update failed: %w", err)
+		return exception.InternalError("update failed: %w", err)
 	}
 
 	fmt.Printf("You'are now on the %s of Serenity!\n", render.Paint(latest.Version(), render.Gray))

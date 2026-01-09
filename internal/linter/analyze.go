@@ -2,7 +2,6 @@ package linter
 
 import (
 	"bytes"
-	"fmt"
 	"go/ast"
 	"go/format"
 	"go/token"
@@ -10,6 +9,7 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
@@ -25,7 +25,9 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 	}
 
 	if len(params.pkgFiles) > 0 {
-		conf.Check(params.pkgPaths[0], params.fset, params.pkgFiles, info)
+		if _, err := conf.Check(params.pkgPaths[0], params.fset, params.pkgFiles, info); err != nil {
+			return nil, exception.InternalError("%v", err)
+		}
 	}
 
 	mutatedObjects := make(map[types.Object]bool)
@@ -105,7 +107,7 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 
 			if err := format.Node(&buf, params.fset, f); err == nil {
 				if err := os.WriteFile(filePath, buf.Bytes(), DEFAULT_FILE_MODE); err != nil {
-					return allIssues, fmt.Errorf("failed to write file %s: %w", filePath, err)
+					return allIssues, exception.InternalError("failed to write file %s: %w", filePath, err)
 				}
 			}
 		}

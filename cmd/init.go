@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/serenitysz/serenity/internal/config"
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/prompts"
 	"github.com/serenitysz/serenity/internal/rules"
 	"github.com/spf13/cobra"
@@ -49,7 +50,7 @@ func createSerenity() error {
 	path := "serenity.json"
 
 	if ok, _ := config.Exists(path); ok {
-		return fmt.Errorf("config file already exists: %s", path)
+		return exception.InternalError("config file already exists: %s", path)
 	}
 
 	autofix := false
@@ -63,7 +64,7 @@ func createSerenityInteractive() error {
 		"Which config format do you want to use? (JSON, YAML, TOML)", "JSON")
 
 	if err != nil {
-		return err
+		return exception.InternalError("%v", err)
 	}
 
 	ext, ok := map[string]string{
@@ -73,7 +74,7 @@ func createSerenityInteractive() error {
 	}[format]
 
 	if !ok {
-		return fmt.Errorf("unsupported config format: %s", format)
+		return exception.InternalError("unsupported config format: %s", format)
 	}
 
 	defaultPath := "serenity" + ext
@@ -84,18 +85,18 @@ func createSerenityInteractive() error {
 	)
 
 	if err != nil {
-		return err
+		return exception.InternalError("%v", err)
 	}
 
 	if !isSupportedConfig(path) {
-		return fmt.Errorf("unsupported config format: %s", filepath.Ext(path))
+		return exception.InternalError("unsupported config format: %s", filepath.Ext(path))
 	}
 
 	if ok, _ := config.Exists(path); ok {
 		overwrite, err := prompts.Confirm("Config already exists. Overwrite?")
 
 		if err != nil {
-			return err
+			return exception.InternalError("%v", err)
 		}
 
 		if !overwrite {
@@ -112,7 +113,7 @@ func createSerenityInteractive() error {
 	autofix, err := prompts.Confirm("Enable autofix when possible?")
 
 	if err != nil {
-		return err
+		return exception.InternalError("%v", err)
 	}
 
 	cfg := config.GenDefaultConfig(&autofix)
@@ -128,7 +129,7 @@ func createConfig(path string, cfg *rules.LinterOptions) error {
 	fmt.Printf("Creating %s...\n", path)
 
 	if err := config.CreateConfigFile(cfg, path); err != nil {
-		return err
+		return exception.InternalError("%v", err)
 	}
 
 	fmt.Println("Config file created successfully.")

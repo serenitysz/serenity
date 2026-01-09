@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/render"
 )
 
@@ -22,7 +23,7 @@ func Input(label, def string) (string, error) {
 	input, err := reader.ReadString('\n')
 
 	if err != nil {
-		return "", err
+		return "", exception.InternalError("%v", err)
 	}
 
 	value := strings.TrimSpace(input)
@@ -48,7 +49,7 @@ func Confirm(label string) (bool, error) {
 		input, err := reader.ReadString('\n')
 
 		if err != nil {
-			return false, err
+			return false, exception.InternalError("%v", err)
 		}
 
 		value := strings.ToLower(strings.TrimSpace(input))

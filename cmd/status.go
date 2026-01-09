@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/serenitysz/serenity/internal/config"
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +37,7 @@ func getStatus() error {
 	path, err := config.SearchConfigPath()
 
 	if err != nil {
-		return err
+		return exception.InternalError("%v", err)
 	}
 
 	status := "Not found"

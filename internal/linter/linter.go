@@ -7,7 +7,7 @@ import (
 type Linter struct {
 	Write       bool
 	Unsafe      bool
-	MaxIssues   int // 0 = unlimited
+	MaxIssues   int // 0 means unlimited
 	MaxFileSize int64
 	Config      *rules.LinterOptions
 }

@@ -1,8 +1,7 @@
 package check
 
 import (
-	"errors"
-
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/rules"
 	"github.com/serenitysz/serenity/internal/utils"
 )
@@ -25,8 +24,8 @@ func handleIssues(issues []rules.Issue) error {
 	}
 
 	if hasError {
-		return errors.New("failed due to error")
+		return exception.InternalError("failed due to error")
 	}
 
-	return errors.New("issues found")
+	return exception.InternalError("issues found")
 }

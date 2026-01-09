@@ -1,9 +1,9 @@
 package check
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/linter"
 	"github.com/serenitysz/serenity/internal/rules"
 	"github.com/spf13/cobra"
@@ -13,13 +13,13 @@ func Run(cmd *cobra.Command, args []string, opts *CheckOptions) error {
 	cfg, err := loadConfig(opts.ConfigPath)
 
 	if err != nil {
-		return err
+		return exception.InternalError("%v", err)
 	}
 
 	maxIssues, err := resolveMaxIssues(cmd, cfg)
 
 	if err != nil {
-		return err
+		return exception.InternalError("%v", err)
 	}
 
 	l := linter.New(
@@ -33,7 +33,7 @@ func Run(cmd *cobra.Command, args []string, opts *CheckOptions) error {
 	issues, err := runOnPaths(l, args)
 
 	if err != nil {
-		return err
+		return exception.InternalError("%v", err)
 	}
 
 	return handleIssues(issues)
@@ -41,8 +41,9 @@ func Run(cmd *cobra.Command, args []string, opts *CheckOptions) error {
 
 func resolveMaxIssues(cmd *cobra.Command, cfg *rules.LinterOptions) (int, error) {
 	maxIssues, err := cmd.Flags().GetInt("max-issues")
+
 	if err != nil {
-		return 0, err
+		return 0, exception.InternalError("%v", err)
 	}
 
 	if !cmd.Flags().Changed("max-issues") {
@@ -60,7 +61,7 @@ func runOnPaths(l *linter.Linter, args []string) ([]rules.Issue, error) {
 			wd, err := os.Getwd()
 
 			if err != nil {
-				return nil, fmt.Errorf("get wd: %w", err)
+				return nil, exception.InternalError("get wd: %w", err)
 			}
 
 			p = wd
@@ -69,7 +70,7 @@ func runOnPaths(l *linter.Linter, args []string) ([]rules.Issue, error) {
 		issues, err := l.ProcessPath(p)
 
 		if err != nil {
-			return nil, err
+			return nil, exception.InternalError("%v", err)
 		}
 
 		all = append(all, issues...)

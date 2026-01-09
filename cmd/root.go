@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -16,9 +17,9 @@ var rootCmd = &cobra.Command{
 }
 
 func Exec() {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+	err := rootCmd.Execute()
+
+	os.Exit(exception.ExitCode(err))
 }
 
 func init() {

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
@@ -19,7 +20,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	info, err := os.Stat(root)
 
 	if err != nil {
-		return nil, err
+		return nil, exception.InternalError("%v", err)
 	}
 
 	activeRules := GetActiveRulesMap(l.Config)
@@ -33,13 +34,13 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 		src, err := os.ReadFile(root)
 
 		if err != nil {
-			return nil, err
+			return nil, exception.InternalError("%v", err)
 		}
 
 		f, err := parser.ParseFile(fset, root, src, 0)
 
 		if err != nil {
-			return nil, err
+			return nil, exception.InternalError("%v", err)
 		}
 
 		return l.Analyze(AnalysisParams{
@@ -85,6 +86,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 					var pkgPaths []string
 					var pkgFiles []*ast.File
 
+					// TODO: Review this later
 					for _, path := range job.files {
 						src, err := os.ReadFile(path)
 
@@ -96,6 +98,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "Parse error in %s: %v\n", path, err)
+
 							continue
 						}
 
