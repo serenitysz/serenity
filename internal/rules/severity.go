@@ -8,19 +8,6 @@ const (
 	SeverityError Severity = iota
 )
 
-func (s Severity) String() string {
-	switch s {
-	case SeverityError:
-		return "error"
-	case SeverityWarn:
-		return "warn"
-	case SeverityInfo:
-		return "info"
-	default:
-		return "unknown"
-	}
-}
-
 func ParseSeverity(s string) Severity {
 	switch s {
 	case "error":

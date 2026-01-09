@@ -21,15 +21,13 @@ func (r *EmptyBlockRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	correctness := runner.Cfg.Linter.Rules.Correctness
-
-	if correctness == nil || !correctness.Use || correctness.EmptyBlock == nil {
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
 		return
 	}
 
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	correctness := runner.Cfg.Linter.Rules.Correctness
 
-	if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
+	if correctness == nil || !correctness.Use || correctness.EmptyBlock == nil {
 		return
 	}
 

@@ -44,7 +44,7 @@ func (d *NoDeferInLoopRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	maxIssues := runner.Cfg.GetMaxIssues()
 	severity := rules.ParseSeverity(bp.NoDeferInLoop.Severity)
 
 	ast.Inspect(body, func(n ast.Node) bool {

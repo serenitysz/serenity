@@ -2,6 +2,6 @@ package rules
 
 var GlobalRegistry []Rule
 
-func Register(r Rule) {
-	GlobalRegistry = append(GlobalRegistry, r)
+func Register(rule Rule) {
+	GlobalRegistry = append(GlobalRegistry, rule)
 }

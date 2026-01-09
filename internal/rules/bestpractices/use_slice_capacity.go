@@ -21,15 +21,13 @@ func (u *UseSliceCapacityRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	bp := runner.Cfg.Linter.Rules.BestPractices
-
-	if bp == nil || !bp.Use || bp.UseSliceCapacity == nil {
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
 		return
 	}
 
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	bp := runner.Cfg.Linter.Rules.BestPractices
 
-	if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
+	if bp == nil || !bp.Use || bp.UseSliceCapacity == nil {
 		return
 	}
 

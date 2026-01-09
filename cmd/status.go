@@ -23,26 +23,25 @@ func init() {
 
 func getStatus() error {
 	fmt.Println("Serenity:")
-	fmt.Printf("  Version:                      %s\n", version.Version)
 	fmt.Printf("  Commit:            		%s\n", version.Commit)
+	fmt.Printf("  Version:                      %s\n", version.Version)
 
 	fmt.Println("\nPlatform:")
-	fmt.Printf("  CPU Architecture:             %s\n", runtime.GOARCH)
 	fmt.Printf("  OS:                           %s\n", runtime.GOOS)
+	fmt.Printf("  CPU Architecture:             %s\n", runtime.GOARCH)
 	fmt.Printf("  GO_VERSION:                   %s\n", runtime.Version())
 
 	fmt.Println("\nSerenity Configuration:")
 
-	path, err := config.GetConfigFilePath()
+	path, err := config.SearchConfigPath()
+
 	if err != nil {
 		return err
 	}
 
-	exists, err := config.CheckHasConfigFile(path)
-
 	status := "Not found"
 
-	if err == nil && exists {
+	if path != "" {
 		status = "Loaded successfully"
 	}
 

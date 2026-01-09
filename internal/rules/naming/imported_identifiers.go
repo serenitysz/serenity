@@ -30,7 +30,7 @@ func (r *ImportedIdentifiersRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := rules.GetMaxIssues(runner.Cfg); max > 0 && *runner.IssuesCount >= max {
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
 		return
 	}
 

@@ -21,6 +21,10 @@ func (c *CheckMaxFuncLinesRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
+		return
+	}
+
 	complexity := runner.Cfg.Linter.Rules.Complexity
 
 	if complexity == nil || !complexity.Use {
@@ -51,12 +55,6 @@ func (c *CheckMaxFuncLinesRule) Run(runner *rules.Runner, node ast.Node) {
 	linesCount := end - start + 1
 
 	if int16(linesCount) <= limit {
-		return
-	}
-
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
-
-	if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
 		return
 	}
 

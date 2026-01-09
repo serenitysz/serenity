@@ -12,14 +12,28 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-var paths = [4]string{
+var CANDIDATES = [4]string{
 	"serenity.json",
 	"serenity.yaml",
 	"serenity.yml",
 	"serenity.toml",
 }
 
-func GetConfigFilePath() (string, error) {
+func Exists(path string) (bool, error) {
+	info, err := os.Stat(path)
+
+	if err == nil {
+		return !info.IsDir(), nil
+	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
+}
+
+func SearchConfigPath() (string, error) {
 	if path, err := getFromEnv(); err != nil {
 		return path, nil
 	}
@@ -30,41 +44,24 @@ func GetConfigFilePath() (string, error) {
 		return "", fmt.Errorf("cannot get working directory: %w", err)
 	}
 
-	if path, ok := findConfigUpwards(wd); ok {
+	if path, ok := Scan(wd); ok {
 		return path, nil
 	}
 
 	return "", fmt.Errorf(
 		"no serenity config file found (looked for %v). Run `serenity init`",
-		paths,
+		CANDIDATES,
 	)
 }
 
-func getFromEnv() (string, error) {
-	env := os.Getenv("SERENITY_CONFIG_PATH")
-
-	if env == "" {
-		return "", nil
-	}
-
-	if ok, err := fileExists(env); err != nil {
-		return "", err
-	} else if !ok {
-		return "", fmt.Errorf("SERENITY_CONFIG_PATH points to a non-existent file: %s", env)
-	}
-
-	return env, nil
-
-}
-
-func findConfigUpwards(start string) (string, bool) {
+func Scan(start string) (string, bool) {
 	dir := start
 
 	for {
-		for _, name := range paths {
+		for _, name := range CANDIDATES {
 			path := filepath.Join(dir, name)
 
-			if ok, _ := fileExists(path); ok {
+			if ok, _ := Exists(path); ok {
 				return path, true
 			}
 		}
@@ -77,20 +74,6 @@ func findConfigUpwards(start string) (string, bool) {
 
 		dir = parent
 	}
-}
-
-func fileExists(path string) (bool, error) {
-	info, err := os.Stat(path)
-
-	if err == nil {
-		return !info.IsDir(), nil
-	}
-
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-
-	return false, err
 }
 
 func CreateConfigFile(config *rules.LinterOptions, path string) error {
@@ -107,12 +90,25 @@ func CreateConfigFile(config *rules.LinterOptions, path string) error {
 	return nil
 }
 
+func getFromEnv() (string, error) {
+	env := os.Getenv("SERENITY_CONFIG_PATH")
+
+	if env == "" {
+		return "", nil
+	}
+
+	if ok, err := Exists(env); err != nil {
+		return "", err
+	} else if !ok {
+		return "", fmt.Errorf("SERENITY_CONFIG_PATH points to a non-existent file: %s", env)
+	}
+
+	return env, nil
+
+}
+
 func marshalConfigByExt(config *rules.LinterOptions, path string) ([]byte, error) {
 	ext := strings.ToLower(filepath.Ext(path))
-
-	if ext == "" {
-		return nil, fmt.Errorf("config file has no extension: %s", path)
-	}
 
 	cfg := *config
 
@@ -136,18 +132,4 @@ func marshalConfigByExt(config *rules.LinterOptions, path string) ([]byte, error
 			ext,
 		)
 	}
-}
-
-func CheckHasConfigFile(path string) (bool, error) {
-	_, err := os.Stat(path)
-
-	if err == nil {
-		return true, nil
-	}
-
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-
-	return false, err
 }

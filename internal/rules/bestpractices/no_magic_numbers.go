@@ -22,6 +22,10 @@ func (n *NoMagicNumbersRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
+		return
+	}
+
 	bp := runner.Cfg.Linter.Rules.BestPractices
 
 	if bp == nil || !bp.Use || bp.NoMagicNumbers == nil {
@@ -35,12 +39,6 @@ func (n *NoMagicNumbersRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	if lit.Kind != token.INT && lit.Kind != token.FLOAT {
-		return
-	}
-
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
-
-	if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
 		return
 	}
 

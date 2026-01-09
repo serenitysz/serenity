@@ -3,15 +3,13 @@ package utils
 import (
 	"fmt"
 
+	"github.com/serenitysz/serenity/internal/render"
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-const (
-	colorReset  = "\033[0m"
-	colorRed    = "\033[31m"
-	colorYellow = "\033[33m"
-	colorBlue   = "\033[34m"
-)
+func Ptr[T any](value T) *T {
+	return &value
+}
 
 func FormatLog(issue rules.Issue, msg string) {
 	var label, color string
@@ -19,16 +17,16 @@ func FormatLog(issue rules.Issue, msg string) {
 	switch issue.Severity {
 	case rules.SeverityError:
 		label = "ERROR"
-		color = colorRed
+		color = render.Red
 	case rules.SeverityWarn:
 		label = "WARN"
-		color = colorYellow
+		color = render.Yellow
 	case rules.SeverityInfo:
 		label = "INFO"
-		color = colorBlue
+		color = render.Blue
 	default:
 		label = "ISSUE"
-		color = colorReset
+		color = render.Reset
 	}
 
 	fmt.Printf("%s%s:%d:%d: [%s] %s%s\n",
@@ -38,6 +36,6 @@ func FormatLog(issue rules.Issue, msg string) {
 		issue.Pos.Column,
 		msg,
 		label,
-		colorReset,
+		render.Reset,
 	)
 }

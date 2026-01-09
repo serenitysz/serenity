@@ -1,7 +1,4 @@
 package version
 
-// Commit hash of the current CLI version
-var Commit string
-
-// Current version of the Serenity CLI
-var Version string = "1.0.0"
+// Current version and commit hash of the CLI
+var Commit, Version string = "dirty", "1.0.0"

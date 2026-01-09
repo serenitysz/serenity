@@ -48,7 +48,7 @@ func isSupportedConfig(path string) bool {
 func createSerenity() error {
 	path := "serenity.json"
 
-	if ok, _ := config.CheckHasConfigFile(path); ok {
+	if ok, _ := config.Exists(path); ok {
 		return fmt.Errorf("config file already exists: %s", path)
 	}
 
@@ -91,7 +91,7 @@ func createSerenityInteractive() error {
 		return fmt.Errorf("unsupported config format: %s", filepath.Ext(path))
 	}
 
-	if ok, _ := config.CheckHasConfigFile(path); ok {
+	if ok, _ := config.Exists(path); ok {
 		overwrite, err := prompts.Confirm("Config already exists. Overwrite?")
 
 		if err != nil {

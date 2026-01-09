@@ -5,35 +5,17 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/serenitysz/serenity/internal/render"
 )
 
 var reader = bufio.NewReader(os.Stdin)
 
-var IS_COLOR_ENABLED = os.Getenv("NO_COLOR") == ""
-
-func c(s, code string) string {
-	if !IS_COLOR_ENABLED {
-		return s
-	}
-
-	return code + s + reset
-}
-
-const (
-	reset = "\033[0m"
-	bold  = "\033[1m"
-
-	purplePastel = "\033[38;5;141m"
-	gray         = "\033[90m"
-	cyan         = "\033[36m"
-	red          = "\033[31m"
-)
-
 func Input(label, def string) (string, error) {
 	fmt.Printf(
 		"%s %s (%s)\n",
-		c("?", purplePastel),
-		c(label, bold),
+		render.Paint("?", render.Purple),
+		render.Paint(label, render.Bold),
 		def,
 	)
 
@@ -55,12 +37,12 @@ func Input(label, def string) (string, error) {
 func Confirm(label string) (bool, error) {
 	fmt.Printf(
 		"%s %s %s\n",
-		c("?", purplePastel),
-		c(label, bold),
-		c("(y/N)", gray),
+		render.Paint("?", render.Purple),
+		render.Paint(label, render.Bold),
+		render.Paint("(y/N)", render.Gray),
 	)
 
-	fmt.Printf("%s ", c(">", cyan))
+	fmt.Printf("%s ", render.Paint(">", render.Blue))
 
 	for {
 		input, err := reader.ReadString('\n')
@@ -77,7 +59,7 @@ func Confirm(label string) (bool, error) {
 		case "", "n", "no":
 			return false, nil
 		default:
-			fmt.Print(c("Please answer y or n: ", red))
+			fmt.Print(render.Paint("Please answer y or n: ", render.Red))
 		}
 	}
 }

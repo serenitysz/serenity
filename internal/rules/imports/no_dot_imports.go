@@ -21,6 +21,10 @@ func (r *NoDotImportsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
+		return
+	}
+
 	imports := runner.Cfg.Linter.Rules.Imports
 
 	if imports == nil || !imports.Use || imports.NoDotImports == nil {
@@ -30,12 +34,6 @@ func (r *NoDotImportsRule) Run(runner *rules.Runner, node ast.Node) {
 	importSpec := node.(*ast.ImportSpec)
 
 	if importSpec.Name != nil && importSpec.Name.Name == "." {
-		maxIssues := rules.GetMaxIssues(runner.Cfg)
-
-		if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
-			return
-		}
-
 		*runner.IssuesCount++
 
 		*runner.Issues = append(*runner.Issues, rules.Issue{

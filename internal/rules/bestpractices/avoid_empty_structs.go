@@ -21,6 +21,10 @@ func (a *AvoidEmptyStructsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
+		return
+	}
+
 	bp := runner.Cfg.Linter.Rules.BestPractices
 
 	if bp == nil || !bp.Use || bp.AvoidEmptyStructs == nil {
@@ -35,12 +39,6 @@ func (a *AvoidEmptyStructsRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	if st.Fields == nil || len(st.Fields.List) == 0 {
-		maxIssues := rules.GetMaxIssues(runner.Cfg)
-
-		if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
-			return
-		}
-
 		*runner.IssuesCount++
 
 		*runner.Issues = append(*runner.Issues, rules.Issue{

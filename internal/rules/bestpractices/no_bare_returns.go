@@ -24,6 +24,10 @@ func (n *NoBareReturnsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
+		return
+	}
+
 	bp := runner.Cfg.Linter.Rules.BestPractices
 
 	if bp == nil || !bp.Use || bp.NoBareReturns == nil {
@@ -56,14 +60,9 @@ func (n *NoBareReturnsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
 	severity := rules.ParseSeverity(bp.NoBareReturns.Severity)
 
 	ast.Inspect(body, func(n ast.Node) bool {
-		if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
-			return false
-		}
-
 		switch t := n.(type) {
 		case *ast.FuncLit:
 			return false

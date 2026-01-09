@@ -27,9 +27,7 @@ func (r *ReceiverNamesRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
-
-	if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
 		return
 	}
 

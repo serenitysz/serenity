@@ -30,6 +30,20 @@ type LinterOptions struct {
 	Performance *PerformanceOptions `json:"performance,omitempty" yaml:"performance,omitempty" toml:"performance,omitempty"`
 }
 
+func (l *LinterOptions) GetMaxIssues() uint16 {
+	if l.Linter.Issues != nil {
+		return l.Linter.Issues.Max
+	}
+
+	return 0
+}
+
+func (l *LinterOptions) ShouldAutofix() bool {
+	return l.Assistance != nil &&
+		l.Assistance.Use &&
+		l.Assistance.AutoFix != nil && *l.Assistance.AutoFix
+}
+
 type Issue struct {
 	Pos      token.Position
 	ID       uint16

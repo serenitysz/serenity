@@ -21,6 +21,7 @@ func (a *AlwaysPreferConstRule) Run(runner *rules.Runner, node ast.Node) {
 	if runner.ShouldStop != nil && runner.ShouldStop() {
 		return
 	}
+
 	bp := runner.Cfg.Linter.Rules.BestPractices
 
 	if bp == nil || !bp.Use || bp.AlwaysPreferConst == nil {
@@ -33,7 +34,7 @@ func (a *AlwaysPreferConstRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
+	maxIssues := runner.Cfg.GetMaxIssues()
 	severity := rules.ParseSeverity(bp.AlwaysPreferConst.Severity)
 
 	for i, name := range v.Names {

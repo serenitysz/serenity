@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/creativeprojects/go-selfupdate"
+	"github.com/serenitysz/serenity/internal/render"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +42,7 @@ func update(ctx context.Context) error {
 	}
 
 	if !found || latest.LessOrEqual(rootCmd.Version) {
-		fmt.Printf("You're already running the latest version (%s)\n", rootCmd.Version)
+		fmt.Printf("You're already running the latest version (%s)\n", render.Paint(rootCmd.Version, render.Gray))
 
 		return nil
 	}
@@ -52,13 +53,13 @@ func update(ctx context.Context) error {
 		return fmt.Errorf("failed to locate executable: %w", err)
 	}
 
-	fmt.Printf("Updating Serenity from %s to %s...\n", rootCmd.Version, latest.Version())
+	fmt.Printf("Updating Serenity from %s to %s...\n", render.Paint(rootCmd.Version, render.Gray), render.Paint(latest.Version(), render.Gray))
 
 	if err := selfupdate.UpdateTo(ctx, latest.AssetURL, latest.AssetName, exe); err != nil {
 		return fmt.Errorf("update failed: %w", err)
 	}
 
-	fmt.Printf("You'are now on the %s of Serenity!\n", latest.Version())
+	fmt.Printf("You'are now on the %s of Serenity!\n", render.Paint(latest.Version(), render.Gray))
 
 	return nil
 }

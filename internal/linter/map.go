@@ -13,14 +13,17 @@ import (
 
 func GetActiveRulesMap(cfg *rules.LinterOptions) map[reflect.Type][]rules.Rule {
 	activeRules := make(map[reflect.Type][]rules.Rule)
+
 	const initialCap = 8
 
 	register := func(r rules.Rule) {
 		for _, target := range r.Targets() {
 			t := rules.GetNodeType(target)
+
 			if activeRules[t] == nil {
 				activeRules[t] = make([]rules.Rule, 0, initialCap)
 			}
+
 			activeRules[t] = append(activeRules[t], r)
 		}
 	}
@@ -31,6 +34,7 @@ func GetActiveRulesMap(cfg *rules.LinterOptions) map[reflect.Type][]rules.Rule {
 		if imp.NoDotImports != nil {
 			register(&imports.NoDotImportsRule{})
 		}
+
 		if imp.DisallowedPackages != nil {
 			register(&imports.DisallowedPackagesRule{})
 		}

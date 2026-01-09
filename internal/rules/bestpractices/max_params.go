@@ -21,6 +21,10 @@ func (r *MaxParamsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
+	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
+		return
+	}
+
 	bp := runner.Cfg.Linter.Rules.BestPractices
 
 	if bp == nil || !bp.Use {
@@ -52,12 +56,6 @@ func (r *MaxParamsRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	if limit > 0 && count <= (limit) {
-		return
-	}
-
-	maxIssues := rules.GetMaxIssues(runner.Cfg)
-
-	if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
 		return
 	}
 
