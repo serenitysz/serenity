@@ -10,6 +10,7 @@ import (
 	"github.com/serenitysz/serenity/internal/rules/errs"
 	"github.com/serenitysz/serenity/internal/rules/imports"
 	"github.com/serenitysz/serenity/internal/rules/naming"
+	"github.com/serenitysz/serenity/internal/rules/style"
 )
 
 func GetActiveRulesMap(cfg *rules.LinterOptions) map[reflect.Type][]rules.Rule {
@@ -85,6 +86,12 @@ func GetActiveRulesMap(cfg *rules.LinterOptions) map[reflect.Type][]rules.Rule {
 		}
 		if bp.GetMustReturnValue != nil {
 			register(&bestpractices.GetMustReturnValueRule{})
+		}
+	}
+
+	if stl := r.Style; stl != nil && stl.Use {
+		if stl.PreferIncDec != nil {
+			register(&style.PreferIncDecRule{})
 		}
 	}
 

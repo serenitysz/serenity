@@ -266,4 +266,8 @@ const (
 	ReceiverNameID
 	ExportedIdentifiersID
 	ImportedIdentifiersID
+
+	// STYLE
+
+	PreferIncDecID
 )

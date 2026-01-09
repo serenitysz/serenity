@@ -45,6 +45,9 @@ var registry = map[uint16]RuleMetadata{
 	ReceiverNameID:        {ID: ReceiverNameID, Name: "receiver-name", Template: "receiver name %q does not match the standard"},
 	ExportedIdentifiersID: {ID: ExportedIdentifiersID, Name: "exported-identifiers", Template: "exported identifier %q should have a comment"},
 	ImportedIdentifiersID: {ID: ImportedIdentifiersID, Name: "imported-identifiers", Template: "package alias %q differs from default name"},
+
+	// ---- STYLE ---
+	PreferIncDecID: RuleMetadata{ID: PreferIncDecID, Name: "prefer-inc-dec", Template: "Prefer ++ or -- instead of += 1 / -= 1 operations"},
 }
 
 func GetMetadata(id uint16) (RuleMetadata, bool) {
