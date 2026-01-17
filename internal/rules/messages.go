@@ -28,14 +28,14 @@ var registry = map[uint16]RuleMetadata{
 	MaxParamsID:              {ID: MaxParamsID, Name: "max-params", Template: "function exceeds the maximum parameter limit of %d (actual: %d)"},
 	AvoidEmptyStructsID:      {ID: AvoidEmptyStructsID, Name: "avoid-empty-structs", Template: "empty struct declaration found"},
 	AlwaysPreferConstID:      {ID: AlwaysPreferConstID, Name: "always-prefer-const", Template: "variable %q should be a constant"},
-	GetMustReturnValueID:     RuleMetadata{ID: GetMustReturnValueID, Name: "get-must-return-value", Template: `functions prefixed with "Get" must return at least one non-error value`},
+	GetMustReturnValueID:     {ID: GetMustReturnValueID, Name: "get-must-return-value", Template: `functions prefixed with "Get" must return at least one non-error value`},
 
 	// --- CORRECTNESS ---
 	UnusedReceiverID:         {ID: UnusedReceiverID, Name: "unused-receiver", Template: "method receiver %q is not used inside the function"},
 	UnusedParamsID:           {ID: UnusedParamsID, Name: "unused-params", Template: "parameter %q is unused"},
 	EmptyBlockID:             {ID: EmptyBlockID, Name: "empty-block", Template: "this block is empty, consider removing or adding a comment"},
-	AmbiguousReturnID:        RuleMetadata{ID: AmbiguousReturnID, Name: "ambiguous-return", Template: "function returns %d unnamed values of type string (max allowed: %d)"},
-	BoolLiteralExpressionsID: RuleMetadata{ID: BoolLiteralExpressionsID, Name: "boolean-literal-expressions", Template: "Do not use boolean literal expressions when possible"},
+	AmbiguousReturnID:        {ID: AmbiguousReturnID, Name: "ambiguous-return", Template: "function returns %d unnamed values of type string (max allowed: %d)"},
+	BoolLiteralExpressionsID: {ID: BoolLiteralExpressionsID, Name: "boolean-literal-expressions", Template: "Do not use boolean literal expressions when possible"},
 
 	// --- COMPLEXITY ---
 	MaxFuncLinesID:         {ID: MaxFuncLinesID, Name: "max-func-lines", Template: "function exceeds the maximum line limit of %d (actual: %d)"},
@@ -48,7 +48,7 @@ var registry = map[uint16]RuleMetadata{
 	ImportedIdentifiersID: {ID: ImportedIdentifiersID, Name: "imported-identifiers", Template: "package alias %q differs from default name"},
 
 	// ---- STYLE ---
-	PreferIncDecID: RuleMetadata{ID: PreferIncDecID, Name: "prefer-inc-dec", Template: "Prefer ++ or -- instead of += 1 / -= 1 operations"},
+	PreferIncDecID: {ID: PreferIncDecID, Name: "prefer-inc-dec", Template: "Prefer ++ or -- instead of += 1 / -= 1 operations"},
 }
 
 func GetMetadata(id uint16) (RuleMetadata, bool) {
