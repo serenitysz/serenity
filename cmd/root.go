@@ -23,7 +23,7 @@ func Exec() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().String("color", "auto", "Color output: auto, off, force")
+	rootCmd.PersistentFlags().Bool("no-color", false, "Remove color from the output")
 
 	rootCmd.PersistentFlags().Bool("verbose", false, "Print additional diagnostics and processed files")
 

@@ -15,8 +15,8 @@ const (
 	Yellow = "\033[33m"
 )
 
-func Paint(content, code string) string {
-	if !IS_COLOR_ENABLED {
+func Paint(content, code string, noColor bool) string {
+	if noColor || !IS_COLOR_ENABLED {
 		return content
 	}
 

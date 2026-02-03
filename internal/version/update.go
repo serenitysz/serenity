@@ -13,7 +13,7 @@ import (
 
 const SLUG = "serenitysz/serenity"
 
-func Update() error {
+func Update(noColor bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 
 	defer cancel()
@@ -25,7 +25,7 @@ func Update() error {
 	}
 
 	if !found || latest.LessOrEqual(Version) {
-		fmt.Printf("You'are already running in the latest version of Serenity (%s)\n", render.Paint(Version, render.Gray))
+		fmt.Printf("You'are already running in the latest version of Serenity (%s)\n", render.Paint(Version, render.Gray, noColor))
 
 		return nil
 	}
@@ -36,13 +36,13 @@ func Update() error {
 		return exception.InternalError("failed to locate executable (%w)", err)
 	}
 
-	fmt.Printf("Updating Serenity from %s to %s...\n", render.Paint(Version, render.Gray), render.Paint(latest.Version(), render.Gray))
+	fmt.Printf("Updating Serenity from %s to %s...\n", render.Paint(Version, render.Gray, noColor), render.Paint(latest.Version(), render.Gray, noColor))
 
 	if err := selfupdate.UpdateTo(ctx, latest.AssetURL, latest.AssetName, exe); err != nil {
 		return exception.InternalError("update failed (%w)", err)
 	}
 
-	fmt.Printf("You'are now on the %s version of Serenity!\n", render.Paint(latest.Version(), render.Gray))
+	fmt.Printf("You'are now on the %s version of Serenity!\n", render.Paint(latest.Version(), render.Gray, noColor))
 
 	return nil
 }

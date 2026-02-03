@@ -12,7 +12,7 @@ import (
 	"github.com/serenitysz/serenity/internal/version"
 )
 
-func Get() error {
+func Get(noColor bool) error {
 	path, err := config.SearchConfigPath()
 
 	if err != nil {
@@ -53,7 +53,7 @@ func Get() error {
 	b.WriteString(status)
 	b.WriteByte('\n')
 	b.WriteString("  Path:                         ")
-	b.WriteString(render.Paint(path, render.Purple))
+	b.WriteString(render.Paint(path, render.Purple, noColor))
 	b.WriteByte('\n')
 
 	if _, err := io.WriteString(os.Stdout, b.String()); err != nil {

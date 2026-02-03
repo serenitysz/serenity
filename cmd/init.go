@@ -20,7 +20,13 @@ var initCmd = &cobra.Command{
 	Short: "Create a new Serenity project by creating a serenity config file",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if interactive {
-			return createSerenityInteractive()
+			noColor, err := cmd.Flags().GetBool("no-color")
+
+			if err != nil {
+				return exception.InternalError("%v", err)
+			}
+
+			return createSerenityInteractive(noColor)
 		}
 
 		return createSerenity()
@@ -59,9 +65,9 @@ func createSerenity() error {
 	return createConfig(path, cfg)
 }
 
-func createSerenityInteractive() error {
+func createSerenityInteractive(noColor bool) error {
 	format, err := prompts.Input(
-		"Which config format do you want to use? (JSON, YAML, TOML)", "JSON")
+		"Which config format do you want to use? (JSON, YAML, TOML)", "JSON", noColor)
 
 	if err != nil {
 		return exception.InternalError("%v", err)
@@ -82,6 +88,7 @@ func createSerenityInteractive() error {
 	path, err := prompts.Input(
 		"Config file path",
 		defaultPath,
+		noColor,
 	)
 
 	if err != nil {
@@ -93,7 +100,7 @@ func createSerenityInteractive() error {
 	}
 
 	if ok, _ := config.Exists(path); ok {
-		overwrite, err := prompts.Confirm("Config already exists. Overwrite?")
+		overwrite, err := prompts.Confirm("Config already exists. Overwrite?", noColor)
 
 		if err != nil {
 			return exception.InternalError("%v", err)
@@ -104,13 +111,13 @@ func createSerenityInteractive() error {
 		}
 	}
 
-	strict, err := prompts.Confirm("Enable strict preset?")
+	strict, err := prompts.Confirm("Enable strict preset?", noColor)
 
 	if err != nil {
 		return err
 	}
 
-	autofix, err := prompts.Confirm("Enable autofix when possible?")
+	autofix, err := prompts.Confirm("Enable autofix when possible?", noColor)
 
 	if err != nil {
 		return exception.InternalError("%v", err)
