@@ -1,9 +1,11 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"os/exec"
 	"runtime"
+
+	"github.com/serenitysz/serenity/internal/exception"
+	"github.com/spf13/cobra"
 )
 
 var docsCmd = &cobra.Command{
@@ -30,5 +32,9 @@ func open(url string) error {
 		cmd = exec.Command("xdg-open", url)
 	}
 
-	return cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return exception.InternalError("%v", err)
+	}
+
+	return nil
 }
