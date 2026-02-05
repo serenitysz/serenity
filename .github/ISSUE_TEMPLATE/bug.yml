@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report something that isn't working as expected
+title: "[Bug] <short description>"
+labels: [bug, needs-triage]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please fill out the form below to identify and fix this issue efficiently.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the bug in a clear and concise way.
+      placeholder: "The linter crashes when I define a function with invalid parameter types..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Provide step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Go to /login  
+        2. Click submit  
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "The linter should report an error when I define a function with invalid parameter types..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, version, or any relevant environment details. If you're on Linux / MacOS, you could provide the output of `uname -a`.
+      placeholder: |
+        - OS: macOS 13.4
+        - Linter version: v1.0.0
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Logs
+      description: Attach any logs, screenshots, or error messages that help explain the issue.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched for [existing bug reports](https://github.com/serenitysz/serenity/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+          required: true
+        - label: I have verified this is not a known limitation
+          required: true
+        - label: I have included minimal, reproducible steps
+          required: true
+        - label: I have provided relevant environment details
+          required: true

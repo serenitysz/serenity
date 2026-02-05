@@ -1,0 +1,54 @@
+name: Feature Request
+description: New feature or improvement to existing functionality
+title: "[Feature] <short description>"
+labels: [feature-request, needs-triage]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us understand what you'd like to see in the linter!
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: What do you want to add or improve?
+      placeholder: "The linter could..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: value
+    attributes:
+      label: Value Proposition
+      description: Why is this feature useful? Who does it benefit?
+      placeholder: "It improves... It reduces... It makes..."
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Suggested Solution (Optional)
+      description: Describe a potential way to implement the feature.
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Context
+      description: Add any references, screenshots, or notes to support your request.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched for [existing feature requests](https://github.com/serenitysz/serenity/issues?q=is%3Aissue+is%3Aopen+label%3Afeature-request)
+          required: true
+        - label: I have confirmed this feature doesn't already exist
+          required: true
+        - label: I have explained the use case(s) and who would benefit
+          required: true
+        - label: I have considered potential alternatives/workarounds
+          required: true
