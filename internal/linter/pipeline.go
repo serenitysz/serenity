@@ -37,7 +37,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 			return nil, exception.InternalError("%v", err)
 		}
 
-		f, err := parser.ParseFile(fset, root, src, 0)
+		f, err := parser.ParseFile(fset, root, src, parser.ParseComments)
 
 		if err != nil {
 			return nil, exception.InternalError("%v", err)
@@ -48,6 +48,9 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 			pkgPaths: []string{root},
 			fset:     fset,
 			rules:    activeRules,
+			suppressions: map[string][]rules.Suppression{
+				root: rules.ProcessSuppressions(f.Comments, fset, f.Decls, f.Package),
+			},
 			shouldStop: func(current int) bool {
 				return l.MaxIssues > 0 && current >= l.MaxIssues
 			},
@@ -86,6 +89,8 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 					var pkgPaths []string
 					var pkgFiles []*ast.File
 
+					allSuppressions := make(map[string][]rules.Suppression)
+
 					// TODO: Review this later
 					for _, path := range job.files {
 						src, err := os.ReadFile(path)
@@ -94,13 +99,15 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 							continue
 						}
 
-						f, err := parser.ParseFile(fset, path, src, 0)
+						f, err := parser.ParseFile(fset, path, src, parser.ParseComments)
 
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "Parse error in %s: %v\n", path, err)
 
 							continue
 						}
+
+						allSuppressions[path] = rules.ProcessSuppressions(f.Comments, fset, f.Decls, f.Package)
 
 						pkgFiles = append(pkgFiles, f)
 						pkgPaths = append(pkgPaths, path)
@@ -111,10 +118,11 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 					}
 
 					localIssues, err := l.Analyze(AnalysisParams{
-						pkgFiles: pkgFiles,
-						pkgPaths: pkgPaths,
-						fset:     fset,
-						rules:    activeRules,
+						pkgFiles:     pkgFiles,
+						pkgPaths:     pkgPaths,
+						fset:         fset,
+						rules:        activeRules,
+						suppressions: allSuppressions,
 						shouldStop: func(current int) bool {
 							return l.MaxIssues > 0 && int(atomic.LoadInt64(&totalIssues)) >= l.MaxIssues
 						},

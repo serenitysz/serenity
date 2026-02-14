@@ -18,6 +18,7 @@ type Runner struct {
 	MutatedObjects map[types.Object]bool
 	TypesInfo      *types.Info
 	IssuesCount    *uint16
+	Suppressions   []Suppression
 }
 
 type LinterOptions struct {
@@ -273,4 +274,9 @@ const (
 	// STYLE
 
 	PreferIncDecID
+
+	// SUPPRESSION
+
+	UnusedSuppressionID
+	MisplacedFileWideIgnoreID
 )
