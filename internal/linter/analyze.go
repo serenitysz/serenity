@@ -68,6 +68,8 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 
 		issues := make([]rules.Issue, 0, FINAL_FILE_ISSUE_CAP)
 
+		suppressions := params.suppressions[filePath]
+
 		runner := rules.Runner{
 			File:           f,
 			Fset:           params.fset,
@@ -80,7 +82,8 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 			ShouldStop: func() bool {
 				return params.shouldStop != nil && params.shouldStop(len(allIssues)+len(issues))
 			},
-			TypesInfo: info,
+			TypesInfo:    info,
+			Suppressions: suppressions,
 		}
 
 		ast.Inspect(f, func(n ast.Node) bool {
@@ -97,6 +100,11 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 
 			return true
 		})
+
+		unusedWarnings := rules.CheckUnusedSuppressions(issues, suppressions)
+
+		issues = rules.FilterSuppressedIssues(issues, suppressions)
+		issues = append(issues, unusedWarnings...)
 
 		allIssues = append(allIssues, issues...)
 

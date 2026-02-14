@@ -20,9 +20,10 @@ type PackageJob struct {
 }
 
 type AnalysisParams struct {
-	pkgFiles   []*ast.File
-	pkgPaths   []string
-	fset       *token.FileSet
-	shouldStop func(int) bool
-	rules      map[reflect.Type][]rules.Rule
+	pkgFiles     []*ast.File
+	pkgPaths     []string
+	fset         *token.FileSet
+	shouldStop   func(int) bool
+	rules        map[reflect.Type][]rules.Rule
+	suppressions map[string][]rules.Suppression
 }
