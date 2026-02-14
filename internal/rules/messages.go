@@ -50,6 +50,10 @@ var registry = map[uint16]RuleMetadata{
 
 	// ---- STYLE ---
 	PreferIncDecID: {ID: PreferIncDecID, Name: "prefer-inc-dec", Template: "Prefer ++ or -- instead of += 1 / -= 1 operations"},
+
+	// ---- SUPPRESSION ----
+	UnusedSuppressionID:       {ID: UnusedSuppressionID, Name: "unused-suppression", Template: "suppression for rule %q is unused"},
+	MisplacedFileWideIgnoreID: {ID: MisplacedFileWideIgnoreID, Name: "misplaced-file-wide-ignore", Template: "file-wide ignore for rule %q should be placed before package declaration"},
 }
 
 func GetMetadata(id uint16) (RuleMetadata, bool) {
@@ -81,7 +85,9 @@ func FormatMessage(issue Issue) string {
 		ImportedIdentifiersID,
 		RedundantImportAliasID,
 		NoMagicNumbersID,
-		DisallowedPackagesID:
+		DisallowedPackagesID,
+		UnusedSuppressionID,
+		MisplacedFileWideIgnoreID:
 		return fmt.Sprintf(meta.Template, issue.ArgStr1)
 
 	default:
