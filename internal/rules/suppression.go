@@ -25,11 +25,6 @@ func ProcessSuppressions(comments []*ast.CommentGroup, fset *token.FileSet, decl
 
 	pkgLine := fset.Position(pkgPos).Line
 
-	firstDeclLine := 0
-	if len(decls) > 0 {
-		firstDeclLine = fset.Position(decls[0].Pos()).Line
-	}
-
 	for _, cg := range comments {
 		if cg == nil {
 			continue
@@ -42,7 +37,7 @@ func ProcessSuppressions(comments []*ast.CommentGroup, fset *token.FileSet, decl
 
 			line := fset.Position(comment.Pos()).Line
 
-			sup := parseSuppression(comment.Text, line, firstDeclLine, pkgLine)
+			sup := parseSuppression(comment.Text, line, pkgLine)
 			if sup != nil {
 				suppressions = append(suppressions, *sup)
 			}
@@ -52,7 +47,7 @@ func ProcessSuppressions(comments []*ast.CommentGroup, fset *token.FileSet, decl
 	return suppressions
 }
 
-func parseSuppression(text string, line int, firstDeclLine int, pkgLine int) *Suppression {
+func parseSuppression(text string, line int, pkgLine int) *Suppression {
 	text = strings.TrimSpace(text)
 
 	if match := fileWideRegex.FindStringSubmatch(text); match != nil {
