@@ -6,7 +6,10 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type MaxParamsRule struct{}
+type MaxParamsRule struct {
+	Limit    uint16
+	Severity rules.Severity
+}
 
 func (r *MaxParamsRule) Name() string {
 	return "max-params"
@@ -21,13 +24,7 @@ func (r *MaxParamsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	bp := runner.Cfg.Linter.Rules.BestPractices
-
-	if bp == nil || !bp.Use {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -35,12 +32,6 @@ func (r *MaxParamsRule) Run(runner *rules.Runner, node ast.Node) {
 
 	if fn.Type.Params == nil {
 		return
-	}
-
-	var limit uint16 = 5
-
-	if bp.MaxParams != nil {
-		limit = *bp.MaxParams.Max
 	}
 
 	var count uint16
@@ -55,16 +46,14 @@ func (r *MaxParamsRule) Run(runner *rules.Runner, node ast.Node) {
 		count += uint16(len(field.Names))
 	}
 
-	if limit > 0 && count <= (limit) {
+	if r.Limit > 0 && count <= r.Limit {
 		return
 	}
 
-	*runner.IssuesCount++
-
-	*runner.Issues = append(*runner.Issues, rules.Issue{
-		ArgInt1: int(limit),
-		ArgInt2: int(count),
-		ID:      rules.MaxParamsID,
-		Pos:     runner.Fset.Position(fn.Pos()),
+	runner.Report(fn.Pos(), rules.Issue{
+		ArgInt1:  int(r.Limit),
+		ArgInt2:  int(count),
+		ID:       rules.MaxParamsID,
+		Severity: r.Severity,
 	})
 }

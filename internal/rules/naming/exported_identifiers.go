@@ -8,7 +8,24 @@ import (
 )
 
 type ExportedIdentifiersRule struct {
-	re *regexp.Regexp
+	Severity rules.Severity
+	Re       *regexp.Regexp
+}
+
+func NewExportedIdentifiersRule(cfg *rules.AnyPatternBasedRule) *ExportedIdentifiersRule {
+	rule := &ExportedIdentifiersRule{}
+
+	if cfg != nil {
+		rule.Severity = rules.ParseSeverity(cfg.Severity)
+	}
+
+	if cfg != nil && cfg.Pattern != nil {
+		if re, err := regexp.Compile(*cfg.Pattern); err == nil {
+			rule.Re = re
+		}
+	}
+
+	return rule
 }
 
 func (r *ExportedIdentifiersRule) Name() string {
@@ -29,37 +46,19 @@ func (r *ExportedIdentifiersRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	cfg := runner.Cfg.Linter.Rules.Naming
-
-	if cfg == nil || !cfg.Use || cfg.ExportedIdentifiers == nil {
+	if runner.ReachedMax() {
 		return
-	}
-
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	if r.re == nil {
-		re, err := regexp.Compile(*cfg.ExportedIdentifiers.Pattern)
-
-		if err != nil {
-			return
-		}
-
-		r.re = re
 	}
 
 	check := func(id *ast.Ident) {
-		if id == nil || !ast.IsExported(id.Name) || r.re.MatchString(id.Name) {
+		if id == nil || !ast.IsExported(id.Name) || (r.Re != nil && r.Re.MatchString(id.Name)) {
 			return
 		}
 
-		*runner.IssuesCount++
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+		runner.Report(id.NamePos, rules.Issue{
 			ArgStr1:  id.Name,
 			ID:       rules.ExportedIdentifiersID,
-			Pos:      runner.Fset.Position(id.NamePos),
-			Severity: rules.ParseSeverity(cfg.ExportedIdentifiers.Severity),
+			Severity: r.Severity,
 		})
 	}
 

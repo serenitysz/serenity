@@ -6,7 +6,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type NoDotImportsRule struct{}
+type NoDotImportsRule struct {
+	Severity rules.Severity
+}
 
 func (r *NoDotImportsRule) Name() string {
 	return "no-dot-imports"
@@ -21,25 +23,16 @@ func (r *NoDotImportsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	imports := runner.Cfg.Linter.Rules.Imports
-
-	if imports == nil || !imports.Use || imports.NoDotImports == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
 	importSpec := node.(*ast.ImportSpec)
 
 	if importSpec.Name != nil && importSpec.Name.Name == "." {
-		*runner.IssuesCount++
-
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+		runner.Report(importSpec.Name.NamePos, rules.Issue{
 			ID:       rules.NoDotImportsID,
-			Pos:      runner.Fset.Position(importSpec.Name.NamePos),
-			Severity: rules.ParseSeverity(imports.NoDotImports.Severity),
+			Severity: r.Severity,
 		})
 	}
 }

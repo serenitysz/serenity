@@ -31,11 +31,11 @@ func FormatLog(issue rules.Issue, msg string) {
 
 	fmt.Printf("%s%s:%d:%d: [%s] %s%s\n",
 		color,
-		issue.Pos.Filename,
-		issue.Pos.Line,
-		issue.Pos.Column,
-		msg,
+		issue.Filename(),
+		issue.LineNumber(),
+		issue.ColumnNumber(),
 		label,
+		msg,
 		render.Reset,
 	)
 }

@@ -7,7 +7,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type GetMustReturnValueRule struct{}
+type GetMustReturnValueRule struct {
+	Severity rules.Severity
+}
 
 func (r *GetMustReturnValueRule) Name() string {
 	return "get-must-return-value"
@@ -22,13 +24,7 @@ func (r *GetMustReturnValueRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	cfg := runner.Cfg.Linter.Rules.BestPractices
-
-	if cfg == nil || !cfg.Use || cfg.GetMustReturnValue == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -65,14 +61,9 @@ func (r *GetMustReturnValueRule) Run(runner *rules.Runner, node ast.Node) {
 }
 
 func (r *GetMustReturnValueRule) report(runner *rules.Runner, fn *ast.FuncDecl) {
-	*runner.IssuesCount++
-
-	*runner.Issues = append(*runner.Issues, rules.Issue{
-		ID:  rules.GetMustReturnValueID,
-		Pos: runner.Fset.Position(fn.Name.Pos()),
-		Severity: rules.ParseSeverity(
-			runner.Cfg.Linter.Rules.BestPractices.GetMustReturnValue.Severity,
-		),
+	runner.Report(fn.Name.Pos(), rules.Issue{
+		ID:       rules.GetMustReturnValueID,
+		Severity: r.Severity,
 	})
 }
 

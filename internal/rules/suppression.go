@@ -95,7 +95,8 @@ func GetRuleName(id uint16) string {
 }
 
 func FilterSuppressedIssues(issues []Issue, suppressions []Suppression) []Issue {
-	var filtered []Issue
+	index := buildSuppressionIndex(suppressions)
+	filtered := issues[:0]
 
 	for _, issue := range issues {
 		ruleName := GetRuleName(issue.ID)
@@ -104,26 +105,7 @@ func FilterSuppressedIssues(issues []Issue, suppressions []Suppression) []Issue 
 			continue
 		}
 
-		suppressed := false
-
-		for _, sup := range suppressions {
-			if sup.RuleName != ruleName {
-				continue
-			}
-
-			if sup.IsFileWide {
-				suppressed = true
-				break
-			}
-
-			// Inline suppression applies to the same line or the next line
-			if sup.Line == issue.Pos.Line || sup.Line+1 == issue.Pos.Line {
-				suppressed = true
-				break
-			}
-		}
-
-		if !suppressed {
+		if !index.matches(ruleName, issue.LineNumber()) {
 			filtered = append(filtered, issue)
 		}
 	}
@@ -132,48 +114,31 @@ func FilterSuppressedIssues(issues []Issue, suppressions []Suppression) []Issue 
 }
 
 func CheckUnusedSuppressions(issues []Issue, suppressions []Suppression) []Issue {
-	var warnings []Issue
+	issueIndex := buildIssueIndex(issues)
+	warnings := make([]Issue, 0, len(suppressions))
 
 	for _, sup := range suppressions {
 		if sup.IsMisplaced {
 			warnings = append(warnings, Issue{
 				ID:       MisplacedFileWideIgnoreID,
-				Pos:      token.Position{Line: sup.Line},
+				Line:     uint32(sup.Line),
 				Severity: SeverityWarn,
 				ArgStr1:  sup.RuleName,
 			})
 			continue
 		}
 
-		used := false
-
-		for _, issue := range issues {
-			ruleName := GetRuleName(issue.ID)
-			if ruleName != sup.RuleName {
-				continue
-			}
-
-			if sup.IsFileWide {
-				used = true
-				break
-			}
-
-			// Inline suppression applies to the same line or the next line
-			if sup.Line == issue.Pos.Line || sup.Line+1 == issue.Pos.Line {
-				used = true
-				break
-			}
-		}
+		used := issueIndex.matches(sup.RuleName, sup.Line)
 
 		if !used {
-			pos := token.Position{Line: sup.Line}
+			line := sup.Line
 			if sup.IsFileWide {
-				pos.Line = 1
+				line = 1
 			}
 
 			warnings = append(warnings, Issue{
 				ID:       UnusedSuppressionID,
-				Pos:      pos,
+				Line:     uint32(line),
 				Severity: SeverityWarn,
 				ArgStr1:  sup.RuleName,
 			})
@@ -181,4 +146,70 @@ func CheckUnusedSuppressions(issues []Issue, suppressions []Suppression) []Issue
 	}
 
 	return warnings
+}
+
+type suppressionIndex map[string]suppressionLines
+
+type suppressionLines struct {
+	fileWide bool
+	inline   map[int]struct{}
+}
+
+func buildSuppressionIndex(suppressions []Suppression) suppressionIndex {
+	index := make(suppressionIndex, len(suppressions))
+
+	for _, sup := range suppressions {
+		entry := index[sup.RuleName]
+		if sup.IsFileWide {
+			entry.fileWide = true
+			index[sup.RuleName] = entry
+			continue
+		}
+
+		if entry.inline == nil {
+			entry.inline = make(map[int]struct{}, 2)
+		}
+
+		entry.inline[sup.Line] = struct{}{}
+		entry.inline[sup.Line+1] = struct{}{}
+		index[sup.RuleName] = entry
+	}
+
+	return index
+}
+
+func buildIssueIndex(issues []Issue) suppressionIndex {
+	index := make(suppressionIndex, len(issues))
+
+	for _, issue := range issues {
+		ruleName := GetRuleName(issue.ID)
+		if ruleName == "" {
+			continue
+		}
+
+		entry := index[ruleName]
+		if entry.inline == nil {
+			entry.inline = make(map[int]struct{}, 1)
+		}
+
+		entry.inline[issue.LineNumber()] = struct{}{}
+		index[ruleName] = entry
+	}
+
+	return index
+}
+
+func (s suppressionIndex) matches(ruleName string, line int) bool {
+	entry, ok := s[ruleName]
+	if !ok {
+		return false
+	}
+
+	if entry.fileWide {
+		return true
+	}
+
+	_, ok = entry.inline[line]
+
+	return ok
 }

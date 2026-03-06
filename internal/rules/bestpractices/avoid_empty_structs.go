@@ -6,7 +6,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type AvoidEmptyStructsRule struct{}
+type AvoidEmptyStructsRule struct {
+	Severity rules.Severity
+}
 
 func (a *AvoidEmptyStructsRule) Name() string {
 	return "avoid-empty-structs"
@@ -21,13 +23,7 @@ func (a *AvoidEmptyStructsRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	bp := runner.Cfg.Linter.Rules.BestPractices
-
-	if bp == nil || !bp.Use || bp.AvoidEmptyStructs == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -39,12 +35,9 @@ func (a *AvoidEmptyStructsRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	if st.Fields == nil || len(st.Fields.List) == 0 {
-		*runner.IssuesCount++
-
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+		runner.Report(st.Pos(), rules.Issue{
 			ID:       rules.AvoidEmptyStructsID,
-			Pos:      runner.Fset.Position(st.Pos()),
-			Severity: rules.ParseSeverity(bp.AvoidEmptyStructs.Severity),
+			Severity: a.Severity,
 			ArgStr1:  t.Name.Name,
 		})
 	}

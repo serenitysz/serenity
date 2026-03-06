@@ -8,7 +8,24 @@ import (
 )
 
 type ImportedIdentifiersRule struct {
-	re *regexp.Regexp
+	Severity rules.Severity
+	Re       *regexp.Regexp
+}
+
+func NewImportedIdentifiersRule(cfg *rules.AnyPatternBasedRule) *ImportedIdentifiersRule {
+	rule := &ImportedIdentifiersRule{}
+
+	if cfg != nil {
+		rule.Severity = rules.ParseSeverity(cfg.Severity)
+	}
+
+	if cfg != nil && cfg.Pattern != nil {
+		if re, err := regexp.Compile(*cfg.Pattern); err == nil {
+			rule.Re = re
+		}
+	}
+
+	return rule
 }
 
 func (r *ImportedIdentifiersRule) Name() string {
@@ -24,37 +41,18 @@ func (r *ImportedIdentifiersRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	naming := runner.Cfg.Linter.Rules.Naming
-
-	if naming == nil || !naming.Use || naming.ImportedIdentifiers == nil {
+	if runner.ReachedMax() {
 		return
-	}
-
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	if r.re == nil {
-		re, err := regexp.Compile(*naming.ExportedIdentifiers.Pattern)
-
-		if err != nil {
-			return
-		}
-
-		r.re = re
 	}
 
 	spec := node.(*ast.ImportSpec)
 	name := spec.Name
 
-	if name != nil && !r.re.MatchString(name.Name) {
-		*runner.IssuesCount++
-
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+	if name != nil && (r.Re == nil || !r.Re.MatchString(name.Name)) {
+		runner.Report(spec.Pos(), rules.Issue{
 			ArgStr1:  name.Name,
 			ID:       rules.ImportedIdentifiersID,
-			Pos:      runner.Fset.Position(spec.Pos()),
-			Severity: rules.ParseSeverity(naming.ImportedIdentifiers.Severity),
+			Severity: r.Severity,
 		})
 	}
 }

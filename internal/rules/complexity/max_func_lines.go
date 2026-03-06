@@ -6,7 +6,10 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type CheckMaxFuncLinesRule struct{}
+type CheckMaxFuncLinesRule struct {
+	Limit    int16
+	Severity rules.Severity
+}
 
 func (c *CheckMaxFuncLinesRule) Name() string {
 	return "max-func-lines"
@@ -21,19 +24,7 @@ func (c *CheckMaxFuncLinesRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	complexity := runner.Cfg.Linter.Rules.Complexity
-
-	if complexity == nil || !complexity.Use {
-		return
-	}
-
-	ruleConfig := complexity.MaxFuncLines
-
-	if ruleConfig == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -43,28 +34,19 @@ func (c *CheckMaxFuncLinesRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	var limit int16 = 20
-
-	if ruleConfig.Max != nil {
-		limit = int16(*ruleConfig.Max)
-	}
-
 	end := runner.Fset.Position(fn.End()).Line
 	start := runner.Fset.Position(fn.Pos()).Line
 
 	linesCount := end - start + 1
 
-	if int16(linesCount) <= limit {
+	if int16(linesCount) <= c.Limit {
 		return
 	}
 
-	*runner.IssuesCount++
-
-	*runner.Issues = append(*runner.Issues, rules.Issue{
-		ArgInt1:  int(limit),
+	runner.Report(fn.Pos(), rules.Issue{
+		ArgInt1:  int(c.Limit),
 		ArgInt2:  linesCount,
 		ID:       rules.MaxFuncLinesID,
-		Pos:      runner.Fset.Position(fn.Pos()),
-		Severity: rules.ParseSeverity(ruleConfig.Severity),
+		Severity: c.Severity,
 	})
 }

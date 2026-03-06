@@ -6,7 +6,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type UseSliceCapacityRule struct{}
+type UseSliceCapacityRule struct {
+	Severity rules.Severity
+}
 
 func (u *UseSliceCapacityRule) Name() string {
 	return "use-slice-capacity"
@@ -21,13 +23,7 @@ func (u *UseSliceCapacityRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	bp := runner.Cfg.Linter.Rules.BestPractices
-
-	if bp == nil || !bp.Use || bp.UseSliceCapacity == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -43,11 +39,9 @@ func (u *UseSliceCapacityRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	if len(call.Args) == 2 {
-		*runner.IssuesCount++
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+		runner.Report(call.Pos(), rules.Issue{
 			ID:       rules.UseSliceCapacityID,
-			Pos:      runner.Fset.Position(call.Pos()),
-			Severity: rules.ParseSeverity(bp.UseSliceCapacity.Severity),
+			Severity: u.Severity,
 		})
 	}
 }

@@ -30,13 +30,7 @@ func Run(cmd *cobra.Command, args []string, opts *CheckOptions) error {
 		opts.MaxFileSize,
 	)
 
-	issues, err := runOnPaths(l, args)
-
-	if err != nil {
-		return exception.InternalError("%v", err)
-	}
-
-	return handleIssues(issues)
+	return runOnPaths(l, args)
 }
 
 func resolveMaxIssues(cmd *cobra.Command, cfg *rules.LinterOptions) (int, error) {
@@ -53,28 +47,48 @@ func resolveMaxIssues(cmd *cobra.Command, cfg *rules.LinterOptions) (int, error)
 	return maxIssues, nil
 }
 
-func runOnPaths(l *linter.Linter, args []string) ([]rules.Issue, error) {
-	var all []rules.Issue
+func runOnPaths(l *linter.Linter, args []string) error {
+	if len(args) == 0 {
+		args = []string{"."}
+	}
+
+	var summary issueSummary
+	remaining := l.MaxIssues
 
 	for _, p := range args {
+		if remaining == 0 && l.MaxIssues > 0 {
+			break
+		}
+
 		if p == "" || p == "." {
 			wd, err := os.Getwd()
 
 			if err != nil {
-				return nil, exception.InternalError("get wd: %w", err)
+				return exception.InternalError("get wd: %w", err)
 			}
 
 			p = wd
 		}
 
+		if l.MaxIssues > 0 {
+			l.MaxIssues = remaining
+		}
+
 		issues, err := l.ProcessPath(p)
 
 		if err != nil {
-			return nil, exception.InternalError("%v", err)
+			return exception.InternalError("%v", err)
 		}
 
-		all = append(all, issues...)
+		summary.add(issues)
+
+		if remaining > 0 {
+			remaining -= len(issues)
+			if remaining < 0 {
+				remaining = 0
+			}
+		}
 	}
 
-	return all, nil
+	return summary.err()
 }

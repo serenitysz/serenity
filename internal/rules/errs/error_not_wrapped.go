@@ -7,7 +7,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type ErrorNotWrappedRule struct{}
+type ErrorNotWrappedRule struct {
+	Severity rules.Severity
+}
 
 func (r *ErrorNotWrappedRule) Name() string {
 	return "error-not-wrapped"
@@ -22,13 +24,7 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	cfg := runner.Cfg.Linter.Rules.Errors
-
-	if cfg == nil || !cfg.Use || cfg.ErrorNotWrapped == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -62,12 +58,9 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 		runner.Modified = true
 	}
 
-	*runner.IssuesCount++
-
-	*runner.Issues = append(*runner.Issues, rules.Issue{
+	runner.Report(ident.Pos(), rules.Issue{
 		ArgStr1:  ident.Name,
 		ID:       rules.ErrorNotWrappedID,
-		Pos:      runner.Fset.Position(ident.Pos()),
-		Severity: rules.ParseSeverity(cfg.ErrorNotWrapped.Severity),
+		Severity: r.Severity,
 	})
 }

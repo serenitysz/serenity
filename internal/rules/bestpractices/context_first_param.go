@@ -6,7 +6,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type ContextFirstRule struct{}
+type ContextFirstRule struct {
+	Severity rules.Severity
+}
 
 func (c *ContextFirstRule) Name() string {
 	return "context-first-param"
@@ -21,9 +23,7 @@ func (c *ContextFirstRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	bp := runner.Cfg.Linter.Rules.BestPractices
-
-	if bp == nil || !bp.Use || bp.UseContextInFirstParam == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -34,24 +34,18 @@ func (c *ContextFirstRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	params := fn.Type.Params.List
-	cf := bp.UseContextInFirstParam
-	maxIssues := runner.Cfg.GetMaxIssues()
-	severity := rules.ParseSeverity(cf.Severity)
 
 	for i := 1; i < len(params); i++ {
 		p := params[i]
 
 		if isContextType(p.Type) {
-			if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
+			if runner.ReachedMax() {
 				break
 			}
 
-			*runner.IssuesCount++
-
-			*runner.Issues = append(*runner.Issues, rules.Issue{
+			runner.Report(p.Pos(), rules.Issue{
 				ID:       rules.UseContextInFirstParamID,
-				Pos:      runner.Fset.Position(p.Pos()),
-				Severity: severity,
+				Severity: c.Severity,
 			})
 		}
 	}

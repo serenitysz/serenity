@@ -10,7 +10,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type ErrorStringFormatRule struct{}
+type ErrorStringFormatRule struct {
+	Severity rules.Severity
+}
 
 func (r *ErrorStringFormatRule) Name() string {
 	return "error-string-format"
@@ -25,13 +27,7 @@ func (r *ErrorStringFormatRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	cfg := runner.Cfg.Linter.Rules.Errors
-
-	if cfg == nil || !cfg.Use || cfg.ErrorStringFormat == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -64,12 +60,10 @@ func (r *ErrorStringFormatRule) Run(runner *rules.Runner, node ast.Node) {
 			return
 		}
 
-		*runner.IssuesCount++
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+		runner.Report(lit.Pos(), rules.Issue{
 			ArgStr1:  msg,
 			ID:       rules.ErrorStringFormatID,
-			Pos:      runner.Fset.Position(lit.Pos()),
-			Severity: rules.ParseSeverity(cfg.ErrorStringFormat.Severity),
+			Severity: r.Severity,
 		})
 	}
 }

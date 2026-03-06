@@ -6,7 +6,10 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type AmbiguousReturnRule struct{}
+type AmbiguousReturnRule struct {
+	Severity   rules.Severity
+	MaxAllowed int
+}
 
 func (r *AmbiguousReturnRule) Name() string {
 	return "ambiguous-return"
@@ -21,13 +24,7 @@ func (r *AmbiguousReturnRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	correctness := runner.Cfg.Linter.Rules.Correctness
-
-	if correctness == nil || !correctness.Use || correctness.AmbiguousReturns == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -59,21 +56,13 @@ func (r *AmbiguousReturnRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	maxAllowed := 1
-
-	if correctness.AmbiguousReturns.MaxUnnamedSameType != nil {
-		maxAllowed = *correctness.AmbiguousReturns.MaxUnnamedSameType
-	}
-
 	for typ, count := range seen {
-		if count > maxAllowed && !isAllowedDuplicateReturn(typ) {
-			*runner.IssuesCount++
-			*runner.Issues = append(*runner.Issues, rules.Issue{
+		if count > r.MaxAllowed && !isAllowedDuplicateReturn(typ) {
+			runner.Report(fn.Type.Results.Pos(), rules.Issue{
 				ArgInt1:  count,
-				ArgInt2:  maxAllowed,
+				ArgInt2:  r.MaxAllowed,
 				ID:       rules.AmbiguousReturnID,
-				Pos:      runner.Fset.Position(fn.Type.Results.Pos()),
-				Severity: rules.ParseSeverity(correctness.AmbiguousReturns.Severity),
+				Severity: r.Severity,
 			})
 
 			return

@@ -3,22 +3,28 @@ package rules
 import (
 	"go/ast"
 	"go/token"
-	"go/types"
 )
 
 type Runner struct {
-	File           *ast.File
-	Fset           *token.FileSet
-	Cfg            *LinterOptions
-	Issues         *[]Issue
-	Autofix        bool
-	Unsafe         bool
-	Modified       bool
-	ShouldStop     func() bool
-	MutatedObjects map[types.Object]bool
-	TypesInfo      *types.Info
-	IssuesCount    *uint16
-	Suppressions   []Suppression
+	File            *ast.File
+	Fset            *token.FileSet
+	Cfg             *LinterOptions
+	Issues          *[]Issue
+	Autofix         bool
+	Unsafe          bool
+	Modified        bool
+	ShouldStop      func() bool
+	ConstCandidates map[*ast.Ident]struct{}
+	IssuesCount     *uint16
+	MaxIssues       int
+	Suppressions    []Suppression
+	CurrentFunc     *FunctionContext
+	LoopDepth       int
+}
+
+type FunctionContext struct {
+	Name            string
+	HasNamedResults bool
 }
 
 type LinterOptions struct {
@@ -46,13 +52,62 @@ func (l *LinterOptions) ShouldAutofix() bool {
 }
 
 type Issue struct {
-	Pos      token.Position
+	File     *token.File
+	Pos      token.Pos
+	Line     uint32
+	Column   uint32
 	ID       uint16
 	Flags    uint8
 	Severity Severity
 	ArgInt1  int
 	ArgInt2  int
 	ArgStr1  string
+}
+
+func (r *Runner) ReachedMax() bool {
+	return r.MaxIssues > 0 && r.IssuesCount != nil && int(*r.IssuesCount) >= r.MaxIssues
+}
+
+func (r *Runner) Report(pos token.Pos, issue Issue) bool {
+	if r.ReachedMax() {
+		return false
+	}
+
+	if r.IssuesCount != nil {
+		*r.IssuesCount++
+	}
+
+	issue.Pos = pos
+
+	if r.Fset != nil && pos.IsValid() {
+		file := r.Fset.File(pos)
+		if file != nil {
+			p := file.Position(pos)
+			issue.File = file
+			issue.Line = uint32(p.Line)
+			issue.Column = uint32(p.Column)
+		}
+	}
+
+	*r.Issues = append(*r.Issues, issue)
+
+	return true
+}
+
+func (i Issue) Filename() string {
+	if i.File == nil {
+		return ""
+	}
+
+	return i.File.Name()
+}
+
+func (i Issue) LineNumber() int {
+	return int(i.Line)
+}
+
+func (i Issue) ColumnNumber() int {
+	return int(i.Column)
 }
 
 // Issue flags

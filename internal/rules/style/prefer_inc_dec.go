@@ -7,7 +7,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type PreferIncDecRule struct{}
+type PreferIncDecRule struct {
+	Severity rules.Severity
+}
 
 func (r *PreferIncDecRule) Name() string {
 	return "prefer-inc-dec"
@@ -22,13 +24,7 @@ func (r *PreferIncDecRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	style := runner.Cfg.Linter.Rules.Style
-
-	if style == nil || !style.Use || style.PreferIncDec == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -48,11 +44,8 @@ func (r *PreferIncDecRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	*runner.IssuesCount++
-
-	*runner.Issues = append(*runner.Issues, rules.Issue{
+	runner.Report(stmt.Pos(), rules.Issue{
 		ID:       rules.PreferIncDecID,
-		Pos:      runner.Fset.Position(stmt.Pos()),
-		Severity: rules.ParseSeverity(style.PreferIncDec.Severity),
+		Severity: r.Severity,
 	})
 }

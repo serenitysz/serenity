@@ -6,26 +6,37 @@ import (
 	"github.com/serenitysz/serenity/internal/utils"
 )
 
-func handleIssues(issues []rules.Issue) error {
+type issueSummary struct {
+	hasIssues bool
+	hasError  bool
+}
+
+func (s *issueSummary) add(issues []rules.Issue) {
 	if len(issues) == 0 {
-		return nil
+		return
 	}
 
-	hasError := false
+	s.hasIssues = true
 
 	for _, issue := range issues {
 		msg := rules.FormatMessage(issue)
 
 		if issue.Severity == rules.SeverityError {
-			hasError = true
+			s.hasError = true
 		}
 
 		utils.FormatLog(issue, msg)
 	}
+}
 
-	if hasError {
-		return exception.InternalError("failed due to error")
+func (s issueSummary) err() error {
+	if !s.hasIssues {
+		return nil
 	}
 
-	return exception.InternalError("issues found")
+	if s.hasError {
+		return exception.CommandError("failed due to error")
+	}
+
+	return exception.CommandError("issues found")
 }

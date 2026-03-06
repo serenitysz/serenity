@@ -2,13 +2,31 @@ package imports
 
 import (
 	"go/ast"
-	"slices"
 	"strings"
 
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type DisallowedPackagesRule struct{}
+type DisallowedPackagesRule struct {
+	Severity rules.Severity
+	Packages map[string]struct{}
+}
+
+func NewDisallowedPackagesRule(cfg *rules.DisallowedPackagesRule) *DisallowedPackagesRule {
+	rule := &DisallowedPackagesRule{
+		Packages: make(map[string]struct{}),
+	}
+
+	if cfg != nil {
+		rule.Severity = rules.ParseSeverity(cfg.Severity)
+
+		for _, pkg := range cfg.Packages {
+			rule.Packages[pkg] = struct{}{}
+		}
+	}
+
+	return rule
+}
 
 func (r *DisallowedPackagesRule) Name() string {
 	return "disallowed-packages"
@@ -23,27 +41,18 @@ func (r *DisallowedPackagesRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	imports := runner.Cfg.Linter.Rules.Imports
-
-	if imports == nil || !imports.Use || imports.DisallowedPackages == nil {
-		return
-	}
-
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
+	if runner.ReachedMax() {
 		return
 	}
 
 	spec := node.(*ast.ImportSpec)
 	path := strings.Trim(spec.Path.Value, `"`)
 
-	if slices.Contains(imports.DisallowedPackages.Packages, path) {
-		*runner.IssuesCount++
-
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+	if _, blocked := r.Packages[path]; blocked {
+		runner.Report(spec.Path.ValuePos, rules.Issue{
 			ArgStr1:  path,
 			ID:       rules.DisallowedPackagesID,
-			Pos:      runner.Fset.Position(spec.Path.ValuePos),
-			Severity: rules.ParseSeverity(imports.DisallowedPackages.Severity),
+			Severity: r.Severity,
 		})
 	}
 }

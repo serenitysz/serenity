@@ -7,7 +7,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type NoMagicNumbersRule struct{}
+type NoMagicNumbersRule struct {
+	Severity rules.Severity
+}
 
 func (n *NoMagicNumbersRule) Name() string {
 	return "no-magic-number"
@@ -22,13 +24,7 @@ func (n *NoMagicNumbersRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	bp := runner.Cfg.Linter.Rules.BestPractices
-
-	if bp == nil || !bp.Use || bp.NoMagicNumbers == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -46,12 +42,9 @@ func (n *NoMagicNumbersRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	*runner.IssuesCount++
-
-	*runner.Issues = append(*runner.Issues, rules.Issue{
+	runner.Report(lit.Pos(), rules.Issue{
 		ID:       rules.NoMagicNumbersID,
-		Pos:      runner.Fset.Position(lit.Pos()),
-		Severity: rules.ParseSeverity(bp.NoMagicNumbers.Severity),
+		Severity: n.Severity,
 		ArgStr1:  lit.Value,
 	})
 }

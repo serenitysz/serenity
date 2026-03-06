@@ -6,7 +6,10 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type ReceiverNamesRule struct{}
+type ReceiverNamesRule struct {
+	Severity rules.Severity
+	MaxSize  int
+}
 
 func (r *ReceiverNamesRule) Name() string {
 	return "receiver-names"
@@ -21,32 +24,23 @@ func (r *ReceiverNamesRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	naming := runner.Cfg.Linter.Rules.Naming
-
-	if naming == nil || !naming.Use || naming.ReceiverNames == nil {
-		return
-	}
-
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
+	if runner.ReachedMax() {
 		return
 	}
 
 	fn := node.(*ast.FuncDecl)
 
-	if fn.Recv == nil && len(fn.Recv.List) != 1 {
+	if fn.Recv == nil || len(fn.Recv.List) != 1 {
 		return
 	}
 
 	recv := fn.Recv.List[0]
 
-	if len(recv.Names) > 0 && len(recv.Names[0].Name) > *naming.ReceiverNames.MaxSize {
-		*runner.IssuesCount++
-
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+	if len(recv.Names) > 0 && len(recv.Names[0].Name) > r.MaxSize {
+		runner.Report(recv.Pos(), rules.Issue{
 			ArgStr1:  recv.Names[0].Name,
 			ID:       rules.ReceiverNameID,
-			Pos:      runner.Fset.Position(recv.Pos()),
-			Severity: rules.ParseSeverity(naming.ReceiverNames.Severity),
+			Severity: r.Severity,
 		})
 	}
 }

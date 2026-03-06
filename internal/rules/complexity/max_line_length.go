@@ -6,7 +6,10 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type CheckMaxLineLengthRule struct{}
+type CheckMaxLineLengthRule struct {
+	Limit    int
+	Severity rules.Severity
+}
 
 func (c *CheckMaxLineLengthRule) Name() string {
 	return "max-line-length"
@@ -21,19 +24,7 @@ func (c *CheckMaxLineLengthRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	complexity := runner.Cfg.Linter.Rules.Complexity
-
-	if complexity == nil || !complexity.Use {
-		return
-	}
-
-	ruleConfig := complexity.MaxLineLength
-
-	if ruleConfig == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -42,20 +33,13 @@ func (c *CheckMaxLineLengthRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	var limit int = 80
-	if ruleConfig.Max != nil {
-		limit = int(*ruleConfig.Max)
-	}
-
 	offsets := tokFile.Lines()
 	fSize := tokFile.Size()
 	lineCount := len(offsets)
-
-	maxIssues := runner.Cfg.GetMaxIssues()
-	severity := rules.ParseSeverity(ruleConfig.Severity)
+	eof := tokFile.Position(tokFile.Pos(fSize))
 
 	for i := range lineCount {
-		if maxIssues > 0 && *runner.IssuesCount >= maxIssues {
+		if runner.ReachedMax() {
 			return
 		}
 
@@ -63,21 +47,23 @@ func (c *CheckMaxLineLengthRule) Run(runner *rules.Runner, node ast.Node) {
 
 		isLastLine := i == lineCount-1
 		if isLastLine {
-			lineLen = fSize - offsets[i]
-			if lineLen > 0 {
-				lineLen-- // assume trailing newline
+			if eof.Line == i+1 {
+				lineLen = eof.Column - 1
+			} else {
+				lineLen = fSize - offsets[i]
+				if lineLen > 0 {
+					lineLen--
+				}
 			}
 		} else {
 			lineLen = offsets[i+1] - offsets[i] - 1
 		}
 
-		if lineLen > limit {
-			*runner.IssuesCount++
-			*runner.Issues = append(*runner.Issues, rules.Issue{
+		if lineLen > c.Limit {
+			runner.Report(tokFile.LineStart(i+1), rules.Issue{
 				ID:       rules.MaxLineLengthID,
-				Severity: severity,
-				Pos:      tokFile.Position(tokFile.LineStart(i + 1)),
-				ArgInt1:  limit,
+				Severity: c.Severity,
+				ArgInt1:  c.Limit,
 				ArgInt2:  lineLen,
 			})
 		}

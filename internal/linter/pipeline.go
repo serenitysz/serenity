@@ -7,7 +7,6 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,55 +17,25 @@ import (
 
 func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	info, err := os.Stat(root)
-
 	if err != nil {
 		return nil, exception.InternalError("%v", err)
 	}
 
-	activeRules := GetActiveRulesMap(l.Config)
-
 	if !info.IsDir() {
-		if l.MaxFileSize > 0 && info.Size() > l.MaxFileSize {
-			return nil, nil
-		}
-
-		fset := token.NewFileSet()
-		src, err := os.ReadFile(root)
-
-		if err != nil {
-			return nil, exception.InternalError("%v", err)
-		}
-
-		f, err := parser.ParseFile(fset, root, src, parser.ParseComments)
-
-		if err != nil {
-			return nil, exception.InternalError("%v", err)
-		}
-
-		return l.Analyze(AnalysisParams{
-			pkgFiles: []*ast.File{f},
-			pkgPaths: []string{root},
-			fset:     fset,
-			rules:    activeRules,
-			suppressions: map[string][]rules.Suppression{
-				root: rules.ProcessSuppressions(f.Comments, fset, f.Decls, f.Package),
-			},
-			shouldStop: func(current int) bool {
-				return l.MaxIssues > 0 && current >= l.MaxIssues
-			},
-		})
+		return l.processFile(root, info.Size())
 	}
 
-	workers := runtime.GOMAXPROCS(0)
+	workers := l.Workers
+	if workers < 1 {
+		workers = 1
+	}
 
 	done := make(chan struct{})
-
 	pkgJobs := make(chan PackageJob, workers*2)
 	results := make(chan []rules.Issue, workers)
 
 	var wg sync.WaitGroup
 	var stopOnce sync.Once
-
 	var totalIssues int64
 
 	wg.Add(workers)
@@ -84,35 +53,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 						return
 					}
 
-					fset := token.NewFileSet()
-
-					var pkgPaths []string
-					var pkgFiles []*ast.File
-
-					allSuppressions := make(map[string][]rules.Suppression)
-
-					// TODO: Review this later
-					for _, path := range job.files {
-						src, err := os.ReadFile(path)
-
-						if err != nil {
-							continue
-						}
-
-						f, err := parser.ParseFile(fset, path, src, parser.ParseComments)
-
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "Parse error in %s: %v\n", path, err)
-
-							continue
-						}
-
-						allSuppressions[path] = rules.ProcessSuppressions(f.Comments, fset, f.Decls, f.Package)
-
-						pkgFiles = append(pkgFiles, f)
-						pkgPaths = append(pkgPaths, path)
-					}
-
+					pkgFiles, pkgPaths, fset, suppressions := l.parsePackage(job.files)
 					if len(pkgFiles) == 0 {
 						continue
 					}
@@ -121,33 +62,32 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 						pkgFiles:     pkgFiles,
 						pkgPaths:     pkgPaths,
 						fset:         fset,
-						rules:        activeRules,
-						suppressions: allSuppressions,
+						rules:        l.ActiveRules,
+						suppressions: suppressions,
 						shouldStop: func(current int) bool {
-							return l.MaxIssues > 0 && int(atomic.LoadInt64(&totalIssues)) >= l.MaxIssues
+							if l.MaxIssues <= 0 {
+								return false
+							}
+
+							return int(atomic.LoadInt64(&totalIssues))+current >= l.MaxIssues
 						},
 					})
-
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "Package analysis error: %v\n", err)
-
 						continue
 					}
-
 					if len(localIssues) == 0 {
 						continue
 					}
 
 					if l.MaxIssues > 0 {
-						atomic.AddInt64(&totalIssues, int64(len(localIssues)))
+						if int(atomic.AddInt64(&totalIssues, int64(len(localIssues)))) >= l.MaxIssues {
+							stopOnce.Do(func() { close(done) })
+						}
 					}
 
-					out := make([]rules.Issue, len(localIssues))
-
-					copy(out, localIssues)
-
 					select {
-					case results <- out:
+					case results <- localIssues:
 					case <-done:
 						return
 					}
@@ -157,64 +97,23 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	}
 
 	go func() {
-		pendingPackages := make(map[string][]string)
-
-		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-
+		defer close(pkgJobs)
+		_ = l.walkPackages(root, done, func(job PackageJob) bool {
 			select {
+			case pkgJobs <- job:
+				return true
 			case <-done:
-				return filepath.SkipAll
-			default:
+				return false
 			}
-
-			if d.IsDir() {
-				if d.Name() == "vendor" || d.Name() == ".git" {
-					return filepath.SkipDir
-				}
-
-				return nil
-			}
-
-			if !strings.HasSuffix(path, ".go") {
-				return nil
-			}
-
-			if l.MaxFileSize > 0 {
-				info, err := d.Info()
-
-				if err == nil && info.Size() > l.MaxFileSize {
-					return nil
-				}
-			}
-
-			dir := filepath.Dir(path)
-			pendingPackages[dir] = append(pendingPackages[dir], path)
-
-			return nil
 		})
-
-		for dir, files := range pendingPackages {
-			select {
-			case pkgJobs <- PackageJob{dirPath: dir, files: files}:
-			case <-done:
-				break
-			}
-		}
-
-		close(pkgJobs)
 	}()
 
 	go func() {
 		wg.Wait()
-
 		close(results)
 	}()
 
 	capHint := 128
-
 	if l.MaxIssues > 0 && l.MaxIssues < capHint {
 		capHint = l.MaxIssues
 	}
@@ -224,25 +123,18 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	for batch := range results {
 		if l.MaxIssues == 0 {
 			final = append(final, batch...)
-
 			continue
 		}
 
 		remaining := l.MaxIssues - len(final)
-
 		if remaining <= 0 {
 			stopOnce.Do(func() { close(done) })
-
 			break
 		}
 
 		if len(batch) > remaining {
 			final = append(final, batch[:remaining]...)
-
-			stopOnce.Do(func() {
-				close(done)
-			})
-
+			stopOnce.Do(func() { close(done) })
 			break
 		}
 
@@ -250,4 +142,117 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	}
 
 	return final, nil
+}
+
+func (l *Linter) processFile(path string, size int64) ([]rules.Issue, error) {
+	if l.MaxFileSize > 0 && size > l.MaxFileSize {
+		return nil, nil
+	}
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, path, nil, l.ParseMode)
+	if err != nil {
+		return nil, exception.InternalError("%v", err)
+	}
+
+	return l.Analyze(AnalysisParams{
+		pkgFiles: []*ast.File{file},
+		pkgPaths: []string{path},
+		fset:     fset,
+		rules:    l.ActiveRules,
+		suppressions: map[string][]rules.Suppression{
+			path: rules.ProcessSuppressions(file.Comments, fset, file.Decls, file.Package),
+		},
+		shouldStop: func(current int) bool {
+			return l.MaxIssues > 0 && current >= l.MaxIssues
+		},
+	})
+}
+
+func (l *Linter) parsePackage(paths []string) ([]*ast.File, []string, *token.FileSet, map[string][]rules.Suppression) {
+	fset := token.NewFileSet()
+	pkgFiles := make([]*ast.File, 0, len(paths))
+	pkgPaths := make([]string, 0, len(paths))
+	suppressions := make(map[string][]rules.Suppression, len(paths))
+
+	for _, path := range paths {
+		file, err := parser.ParseFile(fset, path, nil, l.ParseMode)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Parse error in %s: %v\n", path, err)
+			continue
+		}
+
+		suppressions[path] = rules.ProcessSuppressions(file.Comments, fset, file.Decls, file.Package)
+		pkgFiles = append(pkgFiles, file)
+		pkgPaths = append(pkgPaths, path)
+	}
+
+	return pkgFiles, pkgPaths, fset, suppressions
+}
+
+func (l *Linter) walkPackages(root string, done <-chan struct{}, enqueue func(PackageJob) bool) error {
+	var walk func(string) error
+
+	walk = func(dir string) error {
+		select {
+		case <-done:
+			return nil
+		default:
+		}
+
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil
+		}
+
+		files := make([]string, 0, len(entries))
+		dirs := make([]string, 0, len(entries))
+
+		for _, entry := range entries {
+			select {
+			case <-done:
+				return nil
+			default:
+			}
+
+			name := entry.Name()
+			path := filepath.Join(dir, name)
+
+			if entry.IsDir() {
+				if name == "vendor" || name == ".git" {
+					continue
+				}
+
+				dirs = append(dirs, path)
+				continue
+			}
+
+			if !strings.HasSuffix(name, ".go") {
+				continue
+			}
+
+			if l.MaxFileSize > 0 {
+				info, err := entry.Info()
+				if err == nil && info.Size() > l.MaxFileSize {
+					continue
+				}
+			}
+
+			files = append(files, path)
+		}
+
+		if len(files) > 0 && !enqueue(PackageJob{dirPath: dir, files: files}) {
+			return nil
+		}
+
+		for _, subdir := range dirs {
+			if err := walk(subdir); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	return walk(root)
 }

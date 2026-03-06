@@ -7,7 +7,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type BooleanLiteralExpressionsRule struct{}
+type BooleanLiteralExpressionsRule struct {
+	Severity rules.Severity
+}
 
 func (r *BooleanLiteralExpressionsRule) Name() string {
 	return "boolean-literal-expressions"
@@ -22,27 +24,23 @@ func (r *BooleanLiteralExpressionsRule) Run(runner *rules.Runner, node ast.Node)
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	correctness := runner.Cfg.Linter.Rules.Correctness
-	if correctness == nil || !correctness.Use || correctness.BoolLiteralExpressions == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
 	expr := node.(*ast.BinaryExpr)
 
-	if expr.Op != token.EQL && expr.Op != token.NEQ && !hasBoolLiteral(expr.X) && !hasBoolLiteral(expr.Y) {
+	if expr.Op != token.EQL && expr.Op != token.NEQ {
 		return
 	}
 
-	*runner.IssuesCount++
+	if !hasBoolLiteral(expr.X) && !hasBoolLiteral(expr.Y) {
+		return
+	}
 
-	*runner.Issues = append(*runner.Issues, rules.Issue{
+	runner.Report(expr.Pos(), rules.Issue{
 		ID:       rules.BoolLiteralExpressionsID,
-		Pos:      runner.Fset.Position(expr.Pos()),
-		Severity: rules.ParseSeverity(correctness.BoolLiteralExpressions.Severity),
+		Severity: r.Severity,
 	})
 }
 

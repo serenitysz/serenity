@@ -7,7 +7,9 @@ import (
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
-type RedundantImportAliasRule struct{}
+type RedundantImportAliasRule struct {
+	Severity rules.Severity
+}
 
 func (r *RedundantImportAliasRule) Name() string {
 	return "redundant-import-alias"
@@ -22,13 +24,7 @@ func (r *RedundantImportAliasRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if max := runner.Cfg.GetMaxIssues(); max > 0 && *runner.IssuesCount >= max {
-		return
-	}
-
-	imports := runner.Cfg.Linter.Rules.Imports
-
-	if imports == nil || !imports.Use || imports.RedundantImportAlias == nil {
+	if runner.ReachedMax() {
 		return
 	}
 
@@ -43,13 +39,10 @@ func (r *RedundantImportAliasRule) Run(runner *rules.Runner, node ast.Node) {
 	defaultName := defaultImportName(path)
 
 	if spec.Name.Name == defaultName {
-		*runner.IssuesCount++
-
-		*runner.Issues = append(*runner.Issues, rules.Issue{
+		runner.Report(spec.Name.Pos(), rules.Issue{
 			ArgStr1:  defaultName,
 			ID:       rules.RedundantImportAliasID,
-			Pos:      runner.Fset.Position(spec.Name.Pos()),
-			Severity: rules.ParseSeverity(imports.RedundantImportAlias.Severity),
+			Severity: r.Severity,
 		})
 
 		if runner.Cfg.ShouldAutofix() {
