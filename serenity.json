@@ -1,0 +1,130 @@
+{
+	"$schema": "https://raw.githubusercontent.com/serenitysz/schema/main/versions/1.0.0.json",
+	"linter": {
+		"use": true,
+		"rules": {
+			"recommended": false,
+			"errors": {
+				"use": true,
+				"errorStringFormat": {
+					"severity": "error"
+				},
+				"errorNotWrapped": {
+					"severity": "error"
+				}
+			},
+			"imports": {
+				"use": true,
+				"noDotImports": {
+					"severity": "error"
+				},
+				"disallowedPackages": {
+					"severity": "warn",
+					"packages": [
+						"log",
+						"log/slog"
+					]
+				},
+				"redundantImportAlias": {
+					"severity": "warn"
+				}
+			},
+			"bestPractices": {
+				"use": true,
+				"getMustReturnValue": {
+					"severity": "warn"
+				},
+				"noDeferInLoop": {
+					"severity": "error"
+				},
+				"useContextInFirstParam": {
+					"severity": "warn"
+				},
+				"noBareReturns": {
+					"severity": "warn"
+				},
+				"noMagicNumbers": {
+					"severity": "warn"
+				},
+				"useSliceCapacity": {
+					"severity": "warn"
+				},
+				"maxParams": {
+					"severity": "warn",
+					"max": 4
+				},
+				"avoidEmptyStructs": {
+					"severity": "warn"
+				},
+				"alwaysPreferConst": {
+					"severity": "warn"
+				}
+			},
+			"correctness": {
+				"use": true,
+				"emptyBlock": {
+					"severity": "warn"
+				},
+				"boolLiteralExpressions": {
+					"severity": "warn"
+				},
+				"ambiguousReturns": {
+					"severity": "warn",
+					"maxUnnamedSameType": 1
+				}
+			},
+			"complexity": {
+				"use": true,
+				"maxFuncLines": {
+					"severity": "warn",
+					"max": 35
+				},
+				"maxLineLength": {
+					"severity": "warn",
+					"max": 100
+				}
+			},
+			"naming": {
+				"use": true,
+				"receiverNames": {
+					"severity": "warn",
+					"maxSize": 2
+				},
+				"exportedIdentifiers": {
+					"severity": "warn",
+					"pattern": "^[A-Z][A-Za-z0-9]*$"
+				},
+				"importedIdentifiers": {
+					"severity": "warn",
+					"pattern": "^[a-z][a-z0-9]*$"
+				}
+			},
+			"style": {
+				"use": true,
+				"preferIncDec": {
+					"severity": "warn"
+				}
+			}
+		},
+		"issues": {
+			"use": true,
+			"max": 100
+		}
+	},
+	"go": {
+		"exclude": [
+			"**/vendor/**",
+			"**/*.test.go"
+		],
+		"maxFileSize": 2097152
+	},
+	"assistance": {
+		"use": true,
+		"autofix": false
+	},
+	"performance": {
+		"use": true,
+		"threads": 8,
+		"caching": true
+	}
+}
