@@ -22,9 +22,17 @@ func ExitCode(err error) int {
 }
 
 func CommandError(format string, args ...any) error {
-	return fmt.Errorf("%w: %s", ErrCommand, fmt.Sprintf(format, args...))
+	return wrap(ErrCommand, format, args...)
 }
 
 func InternalError(format string, args ...any) error {
-	return fmt.Errorf("%w: %s", ErrInternal, fmt.Sprintf(format, args...))
+	return wrap(ErrInternal, format, args...)
+}
+
+func wrap(kind error, format string, args ...any) error {
+	allArgs := make([]any, 0, len(args)+1)
+	allArgs = append(allArgs, kind)
+	allArgs = append(allArgs, args...)
+
+	return fmt.Errorf("%w: "+format, allArgs...)
 }

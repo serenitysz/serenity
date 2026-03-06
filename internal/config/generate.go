@@ -190,6 +190,8 @@ func ApplyRecommended(cfg *rules.LinterOptions) {
 			Use:     use,
 			AutoFix: &use,
 		}
+
+		cfg.Assistance = assistance
 	}
 
 	rulesGroup := cfg.Linter.Rules
@@ -197,6 +199,7 @@ func ApplyRecommended(cfg *rules.LinterOptions) {
 	if rulesGroup.Imports == nil {
 		rulesGroup.Imports = &rules.ImportRulesGroup{}
 	}
+	rulesGroup.Imports.Use = true
 	if rulesGroup.Imports.NoDotImports == nil {
 		rulesGroup.Imports.NoDotImports = &rules.LinterBaseRule{Severity: "error"}
 	}
@@ -204,6 +207,7 @@ func ApplyRecommended(cfg *rules.LinterOptions) {
 	if rulesGroup.BestPractices == nil {
 		rulesGroup.BestPractices = &rules.BestPracticesRulesGroup{}
 	}
+	rulesGroup.BestPractices.Use = true
 
 	if rulesGroup.BestPractices.UseContextInFirstParam == nil {
 		rulesGroup.BestPractices.UseContextInFirstParam = &rules.LinterBaseRule{Severity: "warn"}
@@ -240,6 +244,7 @@ func ApplyRecommended(cfg *rules.LinterOptions) {
 	if rulesGroup.Complexity == nil {
 		rulesGroup.Complexity = &rules.ComplexityRulesGroup{}
 	}
+	rulesGroup.Complexity.Use = true
 
 	if rulesGroup.Complexity.MaxFuncLines == nil {
 		rulesGroup.Complexity.MaxFuncLines = &rules.AnyMaxValueBasedRule{Severity: "warn"}
@@ -250,4 +255,6 @@ func ApplyRecommended(cfg *rules.LinterOptions) {
 
 		rulesGroup.Complexity.MaxFuncLines.Max = &m
 	}
+
+	cfg.Linter.Rules = rulesGroup
 }

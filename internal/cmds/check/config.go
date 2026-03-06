@@ -19,6 +19,12 @@ func loadConfig(path string) (*rules.LinterOptions, error) {
 
 	cfg := config.GenDefaultConfig(new(bool))
 
+	if path == "" {
+		config.ApplyRecommended(cfg)
+
+		return cfg, nil
+	}
+
 	exists, err := config.Exists(path)
 
 	if err != nil {

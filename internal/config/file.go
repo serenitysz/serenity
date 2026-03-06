@@ -35,6 +35,8 @@ func Exists(path string) (bool, error) {
 
 func SearchConfigPath() (string, error) {
 	if path, err := getFromEnv(); err != nil {
+		return "", err
+	} else if path != "" {
 		return path, nil
 	}
 
@@ -48,10 +50,7 @@ func SearchConfigPath() (string, error) {
 		return path, nil
 	}
 
-	return "", exception.InternalError(
-		"no serenity config file found (looked for %v). Run `serenity init`",
-		CANDIDATES,
-	)
+	return "", nil
 }
 
 func Scan(start string) (string, bool) {
@@ -61,7 +60,8 @@ func Scan(start string) (string, bool) {
 		for _, name := range CANDIDATES {
 			path := filepath.Join(dir, name)
 
-			if ok, _ := Exists(path); ok {
+			ok, err := Exists(path)
+			if err == nil && ok {
 				return path, true
 			}
 		}
