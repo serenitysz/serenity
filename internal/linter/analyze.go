@@ -41,12 +41,12 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 				return params.shouldStop != nil && params.shouldStop(len(allIssues)+len(issues))
 			},
 			Suppressions: suppressions,
-			MaxIssues:    l.remainingIssueBudget(len(allIssues)),
+			MaxIssues:    params.maxIssues,
 		}
 
 		l.runFile(&runner, file, params.rules)
 
-		unusedWarnings := rules.CheckUnusedSuppressions(issues, suppressions)
+		unusedWarnings := rules.CheckUnusedSuppressions(filePath, issues, suppressions)
 
 		issues = rules.FilterSuppressedIssues(issues, suppressions)
 		issues = append(issues, unusedWarnings...)
@@ -169,17 +169,4 @@ func hasNamedResults(fnType *ast.FuncType) bool {
 	}
 
 	return false
-}
-
-func (l *Linter) remainingIssueBudget(current int) int {
-	if l.MaxIssues <= 0 {
-		return 0
-	}
-
-	remaining := l.MaxIssues - current
-	if remaining <= 0 {
-		return 0
-	}
-
-	return remaining
 }

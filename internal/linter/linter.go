@@ -16,6 +16,7 @@ type Linter struct {
 	Workers     int
 	ParseMode   parser.Mode
 	ActiveRules *ActiveRules
+	Cache       *cacheStore
 }
 
 func New(write, unsafe bool, config *rules.LinterOptions, maxIssues int, maxFileSize int64) *Linter {
@@ -40,5 +41,6 @@ func New(write, unsafe bool, config *rules.LinterOptions, maxIssues int, maxFile
 		Workers:     workers,
 		ParseMode:   parseMode,
 		ActiveRules: activeRules,
+		Cache:       newCacheStore(config, write, unsafe),
 	}
 }

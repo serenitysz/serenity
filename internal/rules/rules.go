@@ -52,16 +52,15 @@ func (l *LinterOptions) ShouldAutofix() bool {
 }
 
 type Issue struct {
-	File     *token.File
-	Pos      token.Pos
+	ArgStr1  string
+	Path     string
+	ArgInt1  uint32
+	ArgInt2  uint32
 	Line     uint32
 	Column   uint32
 	ID       uint16
 	Flags    uint8
 	Severity Severity
-	ArgInt1  int
-	ArgInt2  int
-	ArgStr1  string
 }
 
 func (r *Runner) ReachedMax() bool {
@@ -77,13 +76,11 @@ func (r *Runner) Report(pos token.Pos, issue Issue) bool {
 		*r.IssuesCount++
 	}
 
-	issue.Pos = pos
-
 	if r.Fset != nil && pos.IsValid() {
 		file := r.Fset.File(pos)
 		if file != nil {
 			p := file.Position(pos)
-			issue.File = file
+			issue.Path = file.Name()
 			issue.Line = uint32(p.Line)
 			issue.Column = uint32(p.Column)
 		}
@@ -95,11 +92,7 @@ func (r *Runner) Report(pos token.Pos, issue Issue) bool {
 }
 
 func (i Issue) Filename() string {
-	if i.File == nil {
-		return ""
-	}
-
-	return i.File.Name()
+	return i.Path
 }
 
 func (i Issue) LineNumber() int {

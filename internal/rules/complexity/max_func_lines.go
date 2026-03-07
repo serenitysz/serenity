@@ -44,8 +44,8 @@ func (c *CheckMaxFuncLinesRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	runner.Report(fn.Pos(), rules.Issue{
-		ArgInt1:  int(c.Limit),
-		ArgInt2:  linesCount,
+		ArgInt1:  uint32(c.Limit),
+		ArgInt2:  uint32(linesCount),
 		ID:       rules.MaxFuncLinesID,
 		Severity: c.Severity,
 	})

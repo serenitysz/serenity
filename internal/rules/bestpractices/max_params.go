@@ -51,8 +51,8 @@ func (r *MaxParamsRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	runner.Report(fn.Pos(), rules.Issue{
-		ArgInt1:  int(r.Limit),
-		ArgInt2:  int(count),
+		ArgInt1:  uint32(r.Limit),
+		ArgInt2:  uint32(count),
 		ID:       rules.MaxParamsID,
 		Severity: r.Severity,
 	})

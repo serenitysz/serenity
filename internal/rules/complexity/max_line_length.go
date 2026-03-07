@@ -63,8 +63,8 @@ func (c *CheckMaxLineLengthRule) Run(runner *rules.Runner, node ast.Node) {
 			runner.Report(tokFile.LineStart(i+1), rules.Issue{
 				ID:       rules.MaxLineLengthID,
 				Severity: c.Severity,
-				ArgInt1:  c.Limit,
-				ArgInt2:  lineLen,
+				ArgInt1:  uint32(c.Limit),
+				ArgInt2:  uint32(lineLen),
 			})
 		}
 	}

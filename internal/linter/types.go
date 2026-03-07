@@ -16,12 +16,34 @@ const (
 type PackageJob struct {
 	dirPath string
 	files   []string
+	inputs  []packageInput
+}
+
+type cachedBatch struct {
+	data       []byte
+	issueCount int
+	issueStart int
+	inputs     []packageInput
+}
+
+type issueBatch struct {
+	issues []rules.Issue
+	cached *cachedBatch
+}
+
+func (b issueBatch) count() int {
+	if b.cached != nil {
+		return b.cached.issueCount
+	}
+
+	return len(b.issues)
 }
 
 type AnalysisParams struct {
 	pkgFiles     []*ast.File
 	pkgPaths     []string
 	fset         *token.FileSet
+	maxIssues    int
 	shouldStop   func(int) bool
 	rules        *ActiveRules
 	suppressions map[string][]rules.Suppression

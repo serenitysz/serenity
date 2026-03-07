@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package test
 
 import (
@@ -5,13 +8,14 @@ import (
 	. "errors"
 	fmt "fmt"
 	"log"
-	BadAlias "math"
+	math "math"
 )
 
 var reportNumber = 42
 var Exported_Value = 21
 
-type emptyMarker struct{}
+type emptyMarker struct{
+}
 
 type Bad_Name struct {
 	Bad_Field int
@@ -22,7 +26,7 @@ type receiverTarget struct {
 }
 
 func (receiver *Bad_Name) Bad_Method() {
-	receiver.Bad_Field = 10
+	receiver.Bad_Field = 10 + math.MaxInt16
 }
 
 func callExternal() error {

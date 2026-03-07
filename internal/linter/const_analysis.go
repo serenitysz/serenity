@@ -5,6 +5,7 @@ import (
 	"go/token"
 )
 
+//nolint:staticcheck // Deliberately uses parser-resolved ast.Object links to avoid go/types in the lint hot path.
 func (l *Linter) buildConstCandidates(params AnalysisParams) map[*ast.Ident]struct{} {
 	if params.rules == nil || !params.rules.NeedsConstAnalysis || len(params.pkgFiles) == 0 {
 		return nil
@@ -117,6 +118,7 @@ func hasPotentialConstCandidates(files []*ast.File) bool {
 	return false
 }
 
+//nolint:staticcheck // Deliberately uses parser-resolved ast.Object links to avoid go/types in the lint hot path.
 func markMutatedObject(expr ast.Expr, mutated map[*ast.Object]struct{}) {
 	ident, ok := expr.(*ast.Ident)
 	if !ok || ident.Obj == nil {

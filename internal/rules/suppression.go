@@ -113,13 +113,14 @@ func FilterSuppressedIssues(issues []Issue, suppressions []Suppression) []Issue 
 	return filtered
 }
 
-func CheckUnusedSuppressions(issues []Issue, suppressions []Suppression) []Issue {
+func CheckUnusedSuppressions(path string, issues []Issue, suppressions []Suppression) []Issue {
 	issueIndex := buildIssueIndex(issues)
 	warnings := make([]Issue, 0, len(suppressions))
 
 	for _, sup := range suppressions {
 		if sup.IsMisplaced {
 			warnings = append(warnings, Issue{
+				Path:     path,
 				ID:       MisplacedFileWideIgnoreID,
 				Line:     uint32(sup.Line),
 				Severity: SeverityWarn,
@@ -137,6 +138,7 @@ func CheckUnusedSuppressions(issues []Issue, suppressions []Suppression) []Issue
 			}
 
 			warnings = append(warnings, Issue{
+				Path:     path,
 				ID:       UnusedSuppressionID,
 				Line:     uint32(line),
 				Severity: SeverityWarn,
