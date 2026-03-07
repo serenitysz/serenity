@@ -78,6 +78,93 @@ func direct() {
 	}
 }
 
+func TestProcessPath_ContextRichMessages(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sample.go")
+
+	src := `package sample
+
+import "context"
+
+type Widget struct{}
+
+func Handle(name string, ctx context.Context) {
+	buf := make([]byte, len(name))
+	_ = buf
+
+	count := 0
+	count += 1
+}
+`
+
+	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	cfg := &rules.LinterOptions{
+		Linter: rules.LinterRules{
+			Use: true,
+			Rules: rules.LinterRulesGroup{
+				BestPractices: &rules.BestPracticesRulesGroup{
+					Use: true,
+					UseContextInFirstParam: &rules.LinterBaseRule{
+						Severity: "warn",
+					},
+					UseSliceCapacity: &rules.LinterBaseRule{
+						Severity: "warn",
+					},
+				},
+				Naming: &rules.NamingRulesGroup{
+					Use: true,
+					ExportedIdentifiers: &rules.AnyPatternBasedRule{
+						Severity: "warn",
+					},
+				},
+				Style: &rules.StyleRulesGroup{
+					Use: true,
+					PreferIncDec: &rules.LinterBaseRule{
+						Severity: "warn",
+					},
+				},
+			},
+			Issues: &rules.LinterIssuesOptions{},
+		},
+	}
+
+	l := New(false, false, cfg, 0, 0)
+	issues, err := l.ProcessPath(path)
+	if err != nil {
+		t.Fatalf("ProcessPath failed: %v", err)
+	}
+
+	got := make(map[uint16]string, len(issues))
+	for _, issue := range issues {
+		if _, exists := got[issue.ID]; exists {
+			continue
+		}
+
+		got[issue.ID] = rules.FormatMessage(issue)
+	}
+
+	if got[rules.UseContextInFirstParamID] != `parameter "ctx" in function "Handle" has type context.Context and must be the first parameter` {
+		t.Fatalf("unexpected context-first-param message: %q", got[rules.UseContextInFirstParamID])
+	}
+
+	if got[rules.UseSliceCapacityID] != `provide slice capacity when initializing "buf" in function "Handle"` {
+		t.Fatalf("unexpected use-slice-capacity message: %q", got[rules.UseSliceCapacityID])
+	}
+
+	if got[rules.PreferIncDecID] != `use ++ or -- instead of += 1 or -= 1 for "count" in function "Handle"` {
+		t.Fatalf("unexpected prefer-inc-dec message: %q", got[rules.PreferIncDecID])
+	}
+
+	if got[rules.ExportedIdentifiersID] != `exported type "Widget" should have a doc comment` {
+		t.Fatalf("unexpected exported-identifiers message: %q", got[rules.ExportedIdentifiersID])
+	}
+}
+
 func TestProcessPath_AlwaysPreferConstAcrossFiles(t *testing.T) {
 	t.Parallel()
 
@@ -129,7 +216,8 @@ func touch() {
 
 	for _, issue := range issues {
 		if issue.ID == rules.AlwaysPreferConstID {
-			reported = append(reported, issue.ArgStr1)
+			name, _ := rules.SplitContext2(issue.ArgStr1)
+			reported = append(reported, name)
 		}
 	}
 
