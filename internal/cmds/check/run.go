@@ -13,13 +13,13 @@ func Run(cmd *cobra.Command, args []string, opts *CheckOptions) error {
 	cfg, err := loadConfig(opts.ConfigPath)
 
 	if err != nil {
-		return exception.InternalError("%v", err)
+		return err
 	}
 
 	maxIssues, err := resolveMaxIssues(cmd, cfg)
 
 	if err != nil {
-		return exception.InternalError("%v", err)
+		return err
 	}
 
 	l := linter.New(
@@ -37,7 +37,7 @@ func resolveMaxIssues(cmd *cobra.Command, cfg *rules.LinterOptions) (int, error)
 	maxIssues, err := cmd.Flags().GetInt("max-issues")
 
 	if err != nil {
-		return 0, exception.InternalError("%v", err)
+		return 0, exception.InternalError("could not read --max-issues: %w", err)
 	}
 
 	if !cmd.Flags().Changed("max-issues") {
@@ -64,7 +64,7 @@ func runOnPaths(l *linter.Linter, args []string) error {
 			wd, err := os.Getwd()
 
 			if err != nil {
-				return exception.InternalError("get wd: %w", err)
+				return exception.InternalError("could not determine the current working directory: %w", err)
 			}
 
 			p = wd
@@ -77,7 +77,7 @@ func runOnPaths(l *linter.Linter, args []string) error {
 		issues, err := l.ProcessPath(p)
 
 		if err != nil {
-			return exception.InternalError("%v", err)
+			return exception.InternalError("could not lint %q: %w", p, err)
 		}
 
 		summary.add(issues)

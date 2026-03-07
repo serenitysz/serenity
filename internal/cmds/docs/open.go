@@ -22,7 +22,7 @@ func Open() error {
 	}
 
 	if err := cmd.Start(); err != nil {
-		return exception.InternalError("%v", err)
+		return exception.InternalError("could not open the Serenity documentation in your browser: %w", err)
 	}
 
 	return nil

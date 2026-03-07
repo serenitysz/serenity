@@ -30,7 +30,7 @@ func Exists(path string) (bool, error) {
 		return false, nil
 	}
 
-	return false, exception.InternalError("%v", err)
+	return false, exception.InternalError("could not access %q: %w", path, err)
 }
 
 func SearchConfigPath() (string, error) {
@@ -43,7 +43,7 @@ func SearchConfigPath() (string, error) {
 	wd, err := os.Getwd()
 
 	if err != nil {
-		return "", exception.InternalError("cannot get working directory: %w", err)
+		return "", exception.InternalError("could not determine the current working directory: %w", err)
 	}
 
 	if path, ok := Scan(wd); ok {
@@ -80,11 +80,11 @@ func CreateConfigFile(config *rules.LinterOptions, path string) error {
 	data, err := marshalConfigByExt(config, path)
 
 	if err != nil {
-		return exception.InternalError("failed to marshal config: %w", err)
+		return exception.InternalError("could not serialize config for %q: %w", path, err)
 	}
 
 	if err := os.WriteFile(path, data, 0o644); err != nil {
-		return exception.InternalError("failed to write config file: %w", err)
+		return exception.InternalError("could not write config file %q: %w", path, err)
 	}
 
 	return nil
@@ -98,9 +98,9 @@ func getFromEnv() (string, error) {
 	}
 
 	if ok, err := Exists(env); err != nil {
-		return "", exception.InternalError("%v", err)
+		return "", err
 	} else if !ok {
-		return "", exception.InternalError("SERENITY_CONFIG_PATH points to a non-existent file: %s", env)
+		return "", exception.InternalError("SERENITY_CONFIG_PATH points to %q, but the file does not exist", env)
 	}
 
 	return env, nil
@@ -128,7 +128,7 @@ func marshalConfigByExt(config *rules.LinterOptions, path string) ([]byte, error
 
 	default:
 		return nil, exception.InternalError(
-			"unsupported config format %q (supported: JSON, TOML, YAML, YML)",
+			"unsupported config format %q; supported formats: .json, .toml, .yaml, .yml",
 			ext,
 		)
 	}

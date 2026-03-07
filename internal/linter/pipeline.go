@@ -1,7 +1,6 @@
 package linter
 
 import (
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -13,13 +12,14 @@ import (
 	"sync/atomic"
 
 	"github.com/serenitysz/serenity/internal/exception"
+	"github.com/serenitysz/serenity/internal/render"
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
 func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 	info, err := os.Stat(root)
 	if err != nil {
-		return nil, exception.InternalError("%v", err)
+		return nil, exception.InternalError("could not access %q: %w", root, err)
 	}
 
 	if !info.IsDir() {
@@ -56,7 +56,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 
 					batch, err := l.processPackageJob(job, &totalIssues)
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "Package analysis error: %v\n", err)
+						render.Warnf("%s  %s", job.dirPath, exception.Message(err))
 						continue
 					}
 					if batch.count() == 0 {
@@ -145,7 +145,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 				final = make([]rules.Issue, batches[0].cached.issueCount)
 				n, ok := decodeCachedIssuesInto(final, batches[0].cached)
 				if !ok {
-					return nil, exception.InternalError("failed to decode cached issues")
+					return nil, exception.InternalError("could not decode cached issues")
 				}
 				return final[:n], nil
 			}
@@ -159,7 +159,7 @@ func (l *Linter) ProcessPath(root string) ([]rules.Issue, error) {
 			if batch.cached != nil {
 				n, ok := decodeCachedIssuesInto(final[offset:offset+batch.cached.issueCount], batch.cached)
 				if !ok {
-					return nil, exception.InternalError("failed to decode cached issues")
+					return nil, exception.InternalError("could not decode cached issues")
 				}
 				offset += n
 				continue
@@ -181,7 +181,7 @@ func (l *Linter) processFile(path string, size int64) ([]rules.Issue, error) {
 	if l.Cache.enabledForRun() {
 		inputs, err := probePackageInputs([]string{path})
 		if err != nil {
-			return nil, exception.InternalError("%v", err)
+			return nil, exception.InternalError("could not inspect %q: %w", path, err)
 		}
 
 		if cached, ok := l.Cache.load(inputs, l.MaxIssues); ok {
@@ -193,13 +193,13 @@ func (l *Linter) processFile(path string, size int64) ([]rules.Issue, error) {
 		}
 
 		if err := loadPackageSources(inputs); err != nil {
-			return nil, exception.InternalError("%v", err)
+			return nil, exception.InternalError("could not read %q: %w", path, err)
 		}
 
 		fset := token.NewFileSet()
 		file, err := parser.ParseFile(fset, path, inputs[0].Src, l.ParseMode)
 		if err != nil {
-			return nil, exception.InternalError("%v", err)
+			return nil, exception.InternalError("could not parse Go file %q: %w", path, err)
 		}
 
 		issues, err := l.analyzePackage([]*ast.File{file}, []string{path}, fset, map[string][]rules.Suppression{
@@ -221,7 +221,7 @@ func (l *Linter) processFile(path string, size int64) ([]rules.Issue, error) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, path, nil, l.ParseMode)
 	if err != nil {
-		return nil, exception.InternalError("%v", err)
+		return nil, exception.InternalError("could not parse Go file %q: %w", path, err)
 	}
 
 	return l.analyzePackage([]*ast.File{file}, []string{path}, fset, map[string][]rules.Suppression{
@@ -265,7 +265,7 @@ func (l *Linter) processCachedPackageJob(job PackageJob, totalIssues *int64) (is
 		var err error
 		inputs, err = probePackageInputs(job.files)
 		if err != nil {
-			return issueBatch{}, exception.InternalError("%v", err)
+			return issueBatch{}, exception.InternalError("could not inspect package inputs in %q: %w", job.dirPath, err)
 		}
 	}
 
@@ -278,7 +278,7 @@ func (l *Linter) processCachedPackageJob(job PackageJob, totalIssues *int64) (is
 	}
 
 	if err := loadPackageSources(inputs); err != nil {
-		return issueBatch{}, exception.InternalError("%v", err)
+		return issueBatch{}, exception.InternalError("could not read package sources in %q: %w", job.dirPath, err)
 	}
 
 	pkgFiles, pkgPaths, fset, suppressions, complete := l.parsePackageInputs(inputs)
@@ -326,7 +326,7 @@ func (l *Linter) parsePackage(paths []string) ([]*ast.File, []string, *token.Fil
 	for _, path := range paths {
 		file, err := parser.ParseFile(fset, path, nil, l.ParseMode)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Parse error in %s: %v\n", path, err)
+			render.Warnf("%s  could not parse Go file: %v", path, err)
 			continue
 		}
 
@@ -349,7 +349,7 @@ func (l *Linter) parsePackageInputs(inputs []packageInput) ([]*ast.File, []strin
 		file, err := parser.ParseFile(fset, input.Path, input.Src, l.ParseMode)
 		if err != nil {
 			complete = false
-			fmt.Fprintf(os.Stderr, "Parse error in %s: %v\n", input.Path, err)
+			render.Warnf("%s  could not parse Go file: %v", input.Path, err)
 			continue
 		}
 

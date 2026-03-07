@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/serenitysz/serenity/internal/config"
 	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/prompts"
+	"github.com/serenitysz/serenity/internal/render"
 	"github.com/serenitysz/serenity/internal/rules"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +23,7 @@ var initCmd = &cobra.Command{
 			noColor, err := cmd.Flags().GetBool("no-color")
 
 			if err != nil {
-				return exception.InternalError("%v", err)
+				return exception.InternalError("could not read --no-color: %w", err)
 			}
 
 			return createSerenityInteractive(noColor)
@@ -55,8 +55,13 @@ func isSupportedConfig(path string) bool {
 func createSerenity() error {
 	path := "serenity.json"
 
-	if ok, _ := config.Exists(path); ok {
-		return exception.InternalError("config file already exists: %s", path)
+	ok, err := config.Exists(path)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		return exception.CommandError("config file %q already exists", path)
 	}
 
 	autofix := false
@@ -70,7 +75,7 @@ func createSerenityInteractive(noColor bool) error {
 		"Which config format do you want to use? (JSON, YAML, TOML)", "JSON", noColor)
 
 	if err != nil {
-		return exception.InternalError("%v", err)
+		return exception.InternalError("could not read the selected config format: %w", err)
 	}
 
 	ext, ok := map[string]string{
@@ -80,7 +85,7 @@ func createSerenityInteractive(noColor bool) error {
 	}[format]
 
 	if !ok {
-		return exception.InternalError("unsupported config format: %s", format)
+		return exception.CommandError("unsupported config format %q; choose JSON, YAML, or TOML", format)
 	}
 
 	defaultPath := "serenity" + ext
@@ -92,18 +97,23 @@ func createSerenityInteractive(noColor bool) error {
 	)
 
 	if err != nil {
-		return exception.InternalError("%v", err)
+		return exception.InternalError("could not read the config path: %w", err)
 	}
 
 	if !isSupportedConfig(path) {
-		return exception.InternalError("unsupported config format: %s", filepath.Ext(path))
+		return exception.CommandError("unsupported config format %q; supported formats: .json, .yaml, .yml, .toml", filepath.Ext(path))
 	}
 
-	if ok, _ := config.Exists(path); ok {
+	ok, err = config.Exists(path)
+	if err != nil {
+		return err
+	}
+
+	if ok {
 		overwrite, err := prompts.Confirm("Config already exists. Overwrite?", noColor)
 
 		if err != nil {
-			return exception.InternalError("%v", err)
+			return exception.InternalError("could not confirm whether to overwrite %q: %w", path, err)
 		}
 
 		if !overwrite {
@@ -114,13 +124,13 @@ func createSerenityInteractive(noColor bool) error {
 	strict, err := prompts.Confirm("Enable strict preset?", noColor)
 
 	if err != nil {
-		return err
+		return exception.InternalError("could not read the strict preset option: %w", err)
 	}
 
 	autofix, err := prompts.Confirm("Enable autofix when possible?", noColor)
 
 	if err != nil {
-		return exception.InternalError("%v", err)
+		return exception.InternalError("could not read the autofix option: %w", err)
 	}
 
 	cfg := config.GenDefaultConfig(&autofix)
@@ -133,13 +143,13 @@ func createSerenityInteractive(noColor bool) error {
 }
 
 func createConfig(path string, cfg *rules.LinterOptions) error {
-	fmt.Printf("Creating %s...\n", path)
+	render.Infof("creating config file at %s", path)
 
 	if err := config.CreateConfigFile(cfg, path); err != nil {
-		return exception.InternalError("%v", err)
+		return err
 	}
 
-	fmt.Println("Config file created successfully.")
+	render.Successf("config file created at %s", path)
 
 	return nil
 }

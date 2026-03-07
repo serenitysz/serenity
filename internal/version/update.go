@@ -2,7 +2,6 @@ package version
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
@@ -21,11 +20,11 @@ func Update(noColor bool) error {
 	latest, found, err := selfupdate.DetectLatest(ctx, selfupdate.ParseSlug(SLUG))
 
 	if err != nil {
-		return exception.InternalError("we could not found the latest version (%w)", err)
+		return exception.InternalError("could not check for the latest Serenity release: %w", err)
 	}
 
 	if !found || latest.LessOrEqual(Version) {
-		fmt.Printf("You'are already running in the latest version of Serenity (%s)\n", render.Paint(Version, render.Gray, noColor))
+		render.Infof("Serenity is already up to date (%s)", render.Paint(Version, render.Gray, noColor))
 
 		return nil
 	}
@@ -33,16 +32,16 @@ func Update(noColor bool) error {
 	exe, err := os.Executable()
 
 	if err != nil {
-		return exception.InternalError("failed to locate executable (%w)", err)
+		return exception.InternalError("could not locate the current Serenity executable: %w", err)
 	}
 
-	fmt.Printf("Updating Serenity from %s to %s...\n", render.Paint(Version, render.Gray, noColor), render.Paint(latest.Version(), render.Gray, noColor))
+	render.Infof("updating Serenity from %s to %s", render.Paint(Version, render.Gray, noColor), render.Paint(latest.Version(), render.Gray, noColor))
 
 	if err := selfupdate.UpdateTo(ctx, latest.AssetURL, latest.AssetName, exe); err != nil {
-		return exception.InternalError("update failed (%w)", err)
+		return exception.InternalError("could not replace the current Serenity binary: %w", err)
 	}
 
-	fmt.Printf("You'are now on the %s version of Serenity!\n", render.Paint(latest.Version(), render.Gray, noColor))
+	render.Successf("updated Serenity to %s", render.Paint(latest.Version(), render.Gray, noColor))
 
 	return nil
 }

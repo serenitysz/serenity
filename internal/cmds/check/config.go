@@ -2,7 +2,6 @@ package check
 
 import (
 	"github.com/serenitysz/serenity/internal/config"
-	"github.com/serenitysz/serenity/internal/exception"
 	"github.com/serenitysz/serenity/internal/rules"
 )
 
@@ -11,7 +10,7 @@ func loadConfig(path string) (*rules.LinterOptions, error) {
 		p, err := config.SearchConfigPath()
 
 		if err != nil {
-			return nil, exception.InternalError("%v", err)
+			return nil, err
 		}
 
 		path = p
@@ -28,14 +27,14 @@ func loadConfig(path string) (*rules.LinterOptions, error) {
 	exists, err := config.Exists(path)
 
 	if err != nil {
-		return nil, exception.InternalError("%v", err)
+		return nil, err
 	}
 
 	if exists {
 		loaded, err := config.Read(path)
 
 		if err != nil {
-			return nil, exception.InternalError("%v", err)
+			return nil, err
 		}
 
 		cfg = loaded

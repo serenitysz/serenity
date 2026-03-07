@@ -13,7 +13,7 @@ var statusCmd = &cobra.Command{
 		noColor, err := cmd.Flags().GetBool("no-color")
 
 		if err != nil {
-			return exception.InternalError("%v", err)
+			return exception.InternalError("could not read --no-color: %w", err)
 		}
 
 		return status.Get(noColor)

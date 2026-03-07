@@ -23,7 +23,7 @@ func Input(label, def string, noColor bool) (string, error) {
 	input, err := reader.ReadString('\n')
 
 	if err != nil {
-		return "", exception.InternalError("%v", err)
+		return "", exception.InternalError("could not read interactive input: %w", err)
 	}
 
 	value := strings.TrimSpace(input)
@@ -49,7 +49,7 @@ func Confirm(label string, noColor bool) (bool, error) {
 		input, err := reader.ReadString('\n')
 
 		if err != nil {
-			return false, exception.InternalError("%v", err)
+			return false, exception.InternalError("could not read interactive input: %w", err)
 		}
 
 		value := strings.ToLower(strings.TrimSpace(input))

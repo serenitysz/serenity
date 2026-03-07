@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/serenitysz/serenity/internal/render"
 	"github.com/serenitysz/serenity/internal/rules"
@@ -16,26 +17,29 @@ func FormatLog(issue rules.Issue, msg string) {
 
 	switch issue.Severity {
 	case rules.SeverityError:
-		label = "ERROR"
+		label = "error"
 		color = render.Red
 	case rules.SeverityWarn:
-		label = "WARN"
+		label = "warn"
 		color = render.Yellow
 	case rules.SeverityInfo:
-		label = "INFO"
+		label = "info"
 		color = render.Blue
 	default:
-		label = "ISSUE"
+		label = "issue"
 		color = render.Reset
 	}
 
-	fmt.Printf("%s%s:%d:%d: [%s] %s%s\n",
-		color,
+	formattedLabel := render.Tag(label, color, false)
+	if color == render.Reset {
+		formattedLabel = fmt.Sprintf("%-5s", label)
+	}
+
+	fmt.Fprintf(os.Stderr, "%s %s:%d:%d  %s\n",
+		formattedLabel,
 		issue.Filename(),
 		issue.LineNumber(),
 		issue.ColumnNumber(),
-		label,
 		msg,
-		render.Reset,
 	)
 }

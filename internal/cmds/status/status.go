@@ -16,7 +16,7 @@ func Get(noColor bool) error {
 	path, err := config.SearchConfigPath()
 
 	if err != nil {
-		return exception.InternalError("%v", err)
+		return err
 	}
 
 	status := "Not found"
@@ -57,7 +57,7 @@ func Get(noColor bool) error {
 	b.WriteByte('\n')
 
 	if _, err := io.WriteString(os.Stdout, b.String()); err != nil {
-		return exception.InternalError("%v", err)
+		return exception.InternalError("could not write the status output: %w", err)
 	}
 
 	return nil
