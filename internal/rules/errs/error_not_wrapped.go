@@ -59,7 +59,7 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	runner.Report(ident.Pos(), rules.Issue{
-		ArgStr1:  ident.Name,
+		ArgStr1:  rules.PackContext2(ident.Name, rules.CurrentFunctionName(runner)),
 		ID:       rules.ErrorNotWrappedID,
 		Severity: r.Severity,
 	})

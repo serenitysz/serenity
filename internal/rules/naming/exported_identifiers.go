@@ -3,6 +3,7 @@ package naming
 import (
 	"go/ast"
 	"regexp"
+	"strings"
 
 	"github.com/serenitysz/serenity/internal/rules"
 )
@@ -50,13 +51,13 @@ func (r *ExportedIdentifiersRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	check := func(id *ast.Ident) {
+	check := func(kind string, id *ast.Ident) {
 		if id == nil || !ast.IsExported(id.Name) || (r.Re != nil && r.Re.MatchString(id.Name)) {
 			return
 		}
 
 		runner.Report(id.NamePos, rules.Issue{
-			ArgStr1:  id.Name,
+			ArgStr1:  rules.PackContext2(kind, id.Name),
 			ID:       rules.ExportedIdentifiersID,
 			Severity: r.Severity,
 		})
@@ -64,19 +65,24 @@ func (r *ExportedIdentifiersRule) Run(runner *rules.Runner, node ast.Node) {
 
 	switch n := node.(type) {
 	case *ast.FuncDecl:
-		check(n.Name)
+		check("function", n.Name)
 
 	case *ast.TypeSpec:
-		check(n.Name)
+		check("type", n.Name)
 
 	case *ast.ValueSpec:
+		kind := "value"
+		if decl, ok := runner.Parent.(*ast.GenDecl); ok {
+			kind = strings.ToLower(decl.Tok.String())
+		}
+
 		for _, name := range n.Names {
-			check(name)
+			check(kind, name)
 		}
 
 	case *ast.Field:
 		for _, name := range n.Names {
-			check(name)
+			check("field", name)
 		}
 	}
 }

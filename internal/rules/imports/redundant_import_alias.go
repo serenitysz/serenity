@@ -40,7 +40,7 @@ func (r *RedundantImportAliasRule) Run(runner *rules.Runner, node ast.Node) {
 
 	if spec.Name.Name == defaultName {
 		runner.Report(spec.Name.Pos(), rules.Issue{
-			ArgStr1:  defaultName,
+			ArgStr1:  rules.PackContext2(spec.Name.Name, path),
 			ID:       rules.RedundantImportAliasID,
 			Severity: r.Severity,
 		})

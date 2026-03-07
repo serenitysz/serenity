@@ -31,6 +31,7 @@ func (r *EmptyBlockRule) Run(runner *rules.Runner, node ast.Node) {
 
 	if len(spec.List) == 0 {
 		runner.Report(spec.Pos(), rules.Issue{
+			ArgStr1:  rules.CurrentFunctionName(runner),
 			ID:       rules.EmptyBlockID,
 			Severity: r.Severity,
 		})

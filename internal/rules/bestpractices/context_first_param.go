@@ -43,7 +43,14 @@ func (c *ContextFirstRule) Run(runner *rules.Runner, node ast.Node) {
 				break
 			}
 
+			paramName := ""
+			if len(p.Names) > 0 {
+				paramName = p.Names[0].Name
+			}
+
 			runner.Report(p.Pos(), rules.Issue{
+				ArgStr1:  rules.PackContext2(paramName, fn.Name.Name),
+				ArgInt1:  uint32(i + 1),
 				ID:       rules.UseContextInFirstParamID,
 				Severity: c.Severity,
 			})

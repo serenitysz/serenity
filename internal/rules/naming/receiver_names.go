@@ -38,7 +38,8 @@ func (r *ReceiverNamesRule) Run(runner *rules.Runner, node ast.Node) {
 
 	if len(recv.Names) > 0 && len(recv.Names[0].Name) > r.MaxSize {
 		runner.Report(recv.Pos(), rules.Issue{
-			ArgStr1:  recv.Names[0].Name,
+			ArgStr1:  rules.PackContext2(recv.Names[0].Name, fn.Name.Name),
+			ArgInt1:  uint32(r.MaxSize),
 			ID:       rules.ReceiverNameID,
 			Severity: r.Severity,
 		})

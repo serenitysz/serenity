@@ -19,6 +19,7 @@ type Runner struct {
 	MaxIssues       int
 	Suppressions    []Suppression
 	CurrentFunc     *FunctionContext
+	Parent          ast.Node
 	LoopDepth       int
 }
 

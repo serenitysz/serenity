@@ -31,5 +31,6 @@ func (d *NoDeferInLoopRule) Run(runner *rules.Runner, node ast.Node) {
 	runner.Report(stmt.Pos(), rules.Issue{
 		Severity: d.Severity,
 		ID:       rules.NoDeferInLoopID,
+		ArgStr1:  rules.CurrentFunctionName(runner),
 	})
 }

@@ -45,7 +45,7 @@ func (a *AlwaysPreferConstRule) Run(runner *rules.Runner, node ast.Node) {
 		if _, ok := runner.ConstCandidates[name]; ok {
 			runner.Report(name.Pos(), rules.Issue{
 				Severity: a.Severity,
-				ArgStr1:  name.Name,
+				ArgStr1:  rules.PackContext2(name.Name, rules.CurrentFunctionName(runner)),
 				ID:       rules.AlwaysPreferConstID,
 			})
 		}

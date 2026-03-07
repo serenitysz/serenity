@@ -72,27 +72,39 @@ func (l *Linter) runFile(runner *rules.Runner, file *ast.File, active *ActiveRul
 	}
 
 	stack := make([]visitFrame, 0, 64)
+	nodeStack := make([]ast.Node, 0, 64)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		if n == nil {
 			if len(stack) == 0 {
+				runner.Parent = nil
 				return true
 			}
 
 			frame := stack[len(stack)-1]
 			stack = stack[:len(stack)-1]
+
+			if len(nodeStack) > 0 {
+				nodeStack = nodeStack[:len(nodeStack)-1]
+			}
+			runner.Parent = lastNode(nodeStack)
 			restoreTraversalState(runner, frame)
 
 			return true
 		}
 
+		runner.Parent = lastNode(nodeStack)
+
 		frame := applyTraversalState(runner, n)
 		stack = append(stack, frame)
+		nodeStack = append(nodeStack, n)
 
 		active.Run(runner, n)
 
 		if runner.ReachedMax() || (runner.ShouldStop != nil && runner.ShouldStop()) {
 			stack = stack[:len(stack)-1]
+			nodeStack = nodeStack[:len(nodeStack)-1]
+			runner.Parent = lastNode(nodeStack)
 			restoreTraversalState(runner, frame)
 
 			return false
@@ -100,6 +112,14 @@ func (l *Linter) runFile(runner *rules.Runner, file *ast.File, active *ActiveRul
 
 		return true
 	})
+}
+
+func lastNode(stack []ast.Node) ast.Node {
+	if len(stack) == 0 {
+		return nil
+	}
+
+	return stack[len(stack)-1]
 }
 
 func applyTraversalState(runner *rules.Runner, node ast.Node) visitFrame {

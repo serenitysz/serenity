@@ -3,6 +3,7 @@ package naming
 import (
 	"go/ast"
 	"regexp"
+	"strings"
 
 	"github.com/serenitysz/serenity/internal/rules"
 )
@@ -50,7 +51,7 @@ func (r *ImportedIdentifiersRule) Run(runner *rules.Runner, node ast.Node) {
 
 	if name != nil && (r.Re == nil || !r.Re.MatchString(name.Name)) {
 		runner.Report(spec.Pos(), rules.Issue{
-			ArgStr1:  name.Name,
+			ArgStr1:  rules.PackContext2(name.Name, strings.Trim(spec.Path.Value, `"`)),
 			ID:       rules.ImportedIdentifiersID,
 			Severity: r.Severity,
 		})

@@ -35,6 +35,6 @@ func (n *NoBareReturnsRule) Run(runner *rules.Runner, node ast.Node) {
 	runner.Report(ret.Pos(), rules.Issue{
 		ID:       rules.NoBareReturnsID,
 		Severity: n.Severity,
-		ArgStr1:  runner.CurrentFunc.Name,
+		ArgStr1:  rules.CurrentFunctionName(runner),
 	})
 }

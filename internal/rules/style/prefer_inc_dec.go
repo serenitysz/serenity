@@ -45,6 +45,7 @@ func (r *PreferIncDecRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	runner.Report(stmt.Pos(), rules.Issue{
+		ArgStr1:  rules.PackContext2(rules.ExprName(stmt.Lhs[0]), rules.CurrentFunctionName(runner)),
 		ID:       rules.PreferIncDecID,
 		Severity: r.Severity,
 	})

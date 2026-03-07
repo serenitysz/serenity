@@ -61,7 +61,7 @@ func (r *ErrorStringFormatRule) Run(runner *rules.Runner, node ast.Node) {
 		}
 
 		runner.Report(lit.Pos(), rules.Issue{
-			ArgStr1:  msg,
+			ArgStr1:  rules.PackContext2(msg, rules.CurrentFunctionName(runner)),
 			ID:       rules.ErrorStringFormatID,
 			Severity: r.Severity,
 		})

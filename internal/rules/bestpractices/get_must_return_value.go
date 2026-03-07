@@ -62,6 +62,7 @@ func (r *GetMustReturnValueRule) Run(runner *rules.Runner, node ast.Node) {
 
 func (r *GetMustReturnValueRule) report(runner *rules.Runner, fn *ast.FuncDecl) {
 	runner.Report(fn.Name.Pos(), rules.Issue{
+		ArgStr1:  fn.Name.Name,
 		ID:       rules.GetMustReturnValueID,
 		Severity: r.Severity,
 	})

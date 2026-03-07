@@ -45,6 +45,6 @@ func (n *NoMagicNumbersRule) Run(runner *rules.Runner, node ast.Node) {
 	runner.Report(lit.Pos(), rules.Issue{
 		ID:       rules.NoMagicNumbersID,
 		Severity: n.Severity,
-		ArgStr1:  lit.Value,
+		ArgStr1:  rules.PackContext2(lit.Value, rules.CurrentFunctionName(runner)),
 	})
 }

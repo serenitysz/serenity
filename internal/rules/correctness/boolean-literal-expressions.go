@@ -39,6 +39,7 @@ func (r *BooleanLiteralExpressionsRule) Run(runner *rules.Runner, node ast.Node)
 	}
 
 	runner.Report(expr.Pos(), rules.Issue{
+		ArgStr1:  rules.CurrentFunctionName(runner),
 		ID:       rules.BoolLiteralExpressionsID,
 		Severity: r.Severity,
 	})

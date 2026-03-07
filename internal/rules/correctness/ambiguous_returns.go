@@ -59,6 +59,7 @@ func (r *AmbiguousReturnRule) Run(runner *rules.Runner, node ast.Node) {
 	for typ, count := range seen {
 		if count > r.MaxAllowed && !isAllowedDuplicateReturn(typ) {
 			runner.Report(fn.Type.Results.Pos(), rules.Issue{
+				ArgStr1:  rules.PackContext2(fn.Name.Name, typ),
 				ArgInt1:  uint32(count),
 				ArgInt2:  uint32(r.MaxAllowed),
 				ID:       rules.AmbiguousReturnID,

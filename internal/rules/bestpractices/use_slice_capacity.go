@@ -40,6 +40,7 @@ func (u *UseSliceCapacityRule) Run(runner *rules.Runner, node ast.Node) {
 
 	if len(call.Args) == 2 {
 		runner.Report(call.Pos(), rules.Issue{
+			ArgStr1:  rules.PackContext2(rules.AssignmentTargetName(runner.Parent, call), rules.CurrentFunctionName(runner)),
 			ID:       rules.UseSliceCapacityID,
 			Severity: u.Severity,
 		})
