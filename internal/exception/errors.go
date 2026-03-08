@@ -14,6 +14,10 @@ var (
 	ErrInternal = errors.New("internal error")
 )
 
+type CLIWritableError interface {
+	WriteCLI(w io.Writer, noColor bool)
+}
+
 func ExitCode(err error) int {
 	switch {
 	case err == nil:
@@ -73,6 +77,12 @@ func Message(err error) string {
 
 func Write(w io.Writer, err error, noColor bool) {
 	if err == nil {
+		return
+	}
+
+	var custom CLIWritableError
+	if errors.As(err, &custom) {
+		custom.WriteCLI(w, noColor)
 		return
 	}
 

@@ -52,7 +52,7 @@ func runOnPaths(l *linter.Linter, args []string) error {
 		args = []string{"."}
 	}
 
-	var summary issueSummary
+	summary := newIssueSummary(l.Write)
 	remaining := l.MaxIssues
 
 	for _, p := range args {

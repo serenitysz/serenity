@@ -2,10 +2,12 @@ package check
 
 import (
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/serenitysz/serenity/internal/exception"
+	"github.com/serenitysz/serenity/internal/render"
 	"github.com/serenitysz/serenity/internal/rules"
-	"github.com/serenitysz/serenity/internal/utils"
 )
 
 type issueSummary struct {
@@ -13,6 +15,16 @@ type issueSummary struct {
 	errors    int
 	warnings  int
 	infos     int
+	fixables  int
+	writeMode bool
+	renderer  issueRenderer
+}
+
+func newIssueSummary(writeMode bool) issueSummary {
+	return issueSummary{
+		writeMode: writeMode,
+		renderer:  newIssueRenderer(os.Stderr),
+	}
 }
 
 func (s *issueSummary) add(issues []rules.Issue) {
@@ -25,8 +37,11 @@ func (s *issueSummary) add(issues []rules.Issue) {
 	for _, issue := range issues {
 		msg := rules.FormatMessage(issue)
 		s.addSeverity(issue.Severity)
+		if rules.IsFixable(issue.ID) {
+			s.fixables++
+		}
 
-		utils.FormatLog(issue, msg)
+		s.renderer.write(issue, msg)
 	}
 }
 
@@ -35,7 +50,7 @@ func (s issueSummary) err() error {
 		return nil
 	}
 
-	return exception.CommandError("found %s", s.describe())
+	return summaryError{message: s.footer()}
 }
 
 func (s *issueSummary) addSeverity(severity rules.Severity) {
@@ -74,6 +89,45 @@ func (s issueSummary) describe() string {
 	default:
 		return parts[0] + ", " + parts[1] + ", and " + parts[2]
 	}
+}
+
+func (s issueSummary) footer() string {
+	total := s.errors + s.warnings + s.infos
+	base := fmt.Sprintf("%s found (%s)", pluralize(total, "issue"), s.describe())
+
+	if s.fixables == 0 {
+		return base
+	}
+
+	if s.writeMode {
+		return fmt.Sprintf("%s, %s automatically fixed", base, pluralize(s.fixables, "issue"))
+	}
+
+	return fmt.Sprintf("%s, %s. Use --write to apply automatic fixes.", base, fixableText(s.fixables))
+}
+
+func fixableText(count int) string {
+	if count == 1 {
+		return "1 issue is fixable"
+	}
+
+	return fmt.Sprintf("%d issues are fixable", count)
+}
+
+type summaryError struct {
+	message string
+}
+
+func (e summaryError) Error() string {
+	return e.message
+}
+
+func (e summaryError) Unwrap() error {
+	return exception.ErrCommand
+}
+
+func (e summaryError) WriteCLI(w io.Writer, noColor bool) {
+	_, _ = fmt.Fprintf(w, "%s\n", render.Paint(e.message, render.Yellow, noColor))
 }
 
 func pluralize(count int, singular string) string {

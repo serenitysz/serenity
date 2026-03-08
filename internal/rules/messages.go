@@ -6,18 +6,19 @@ type RuleMetadata struct {
 	ID       uint16
 	Name     string
 	Template string
+	Fixable  bool
 }
 
 var registry = map[uint16]RuleMetadata{
 	// --- ERRORS ---
 	NoErrorShadowingID:  {ID: NoErrorShadowingID, Name: "no-error-shadowing", Template: "identifier %q shadows an existing error variable"},
-	ErrorStringFormatID: {ID: ErrorStringFormatID, Name: "error-string-format", Template: "error message should start with a lowercase letter and should not end with punctuation"},
-	ErrorNotWrappedID:   {ID: ErrorNotWrappedID, Name: "error-not-wrapped", Template: "error should be wrapped before it is returned"},
+	ErrorStringFormatID: {ID: ErrorStringFormatID, Name: "error-string-format", Template: "error message should start with a lowercase letter and should not end with punctuation", Fixable: true},
+	ErrorNotWrappedID:   {ID: ErrorNotWrappedID, Name: "error-not-wrapped", Template: "error should be wrapped before it is returned", Fixable: true},
 
 	// --- IMPORTS ---
 	NoDotImportsID:         {ID: NoDotImportsID, Name: "no-dot-imports", Template: "dot import is not allowed"},
 	DisallowedPackagesID:   {ID: DisallowedPackagesID, Name: "disallowed-packages", Template: "package %q is disallowed by configuration"},
-	RedundantImportAliasID: {ID: RedundantImportAliasID, Name: "redundant-import-alias", Template: "import alias is redundant"},
+	RedundantImportAliasID: {ID: RedundantImportAliasID, Name: "redundant-import-alias", Template: "import alias is redundant", Fixable: true},
 
 	// --- BEST PRACTICES ---
 	NoDeferInLoopID:          {ID: NoDeferInLoopID, Name: "no-defer-in-loop", Template: "avoid defer inside loops"},
@@ -59,6 +60,11 @@ var registry = map[uint16]RuleMetadata{
 func GetMetadata(id uint16) (RuleMetadata, bool) {
 	m, ok := registry[id]
 	return m, ok
+}
+
+func IsFixable(id uint16) bool {
+	meta, ok := GetMetadata(id)
+	return ok && meta.Fixable
 }
 
 func FormatMessage(issue Issue) string {
