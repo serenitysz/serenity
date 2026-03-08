@@ -39,16 +39,21 @@ func (r *RedundantImportAliasRule) Run(runner *rules.Runner, node ast.Node) {
 	defaultName := defaultImportName(path)
 
 	if spec.Name.Name == defaultName {
-		runner.Report(spec.Name.Pos(), rules.Issue{
+		pos := spec.Name.Pos()
+		issue := rules.Issue{
 			ArgStr1:  rules.PackContext2(spec.Name.Name, path),
 			ID:       rules.RedundantImportAliasID,
 			Severity: r.Severity,
-		})
+		}
 
 		if runner.ShouldAutofix() {
 			spec.Name = nil
 			runner.Modified = true
+			runner.ReportFixed(pos, issue)
+			return
 		}
+
+		runner.ReportFixable(pos, issue)
 	}
 }
 

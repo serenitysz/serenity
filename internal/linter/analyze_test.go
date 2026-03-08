@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -570,6 +571,169 @@ func TestProcessPath_MaxIssuesUsesStableTraversalOrder(t *testing.T) {
 		if issues[0].Filename() != expectedPath {
 			t.Fatalf("expected stable first issue %q on iteration %d, got %q", expectedPath, i, issues[0].Filename())
 		}
+	}
+}
+
+func TestProcessPath_WriteAppliesSafeAutofixes(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sample.go")
+
+	src := `package sample
+
+func Handle(flag bool, items []int) bool {
+	buf := make([]int, len(items))
+	_ = buf
+
+	count := 0
+	count += 1
+
+	if flag == true {
+		return count > 0
+	}
+
+	return flag != false
+}
+`
+
+	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	cfg := &rules.LinterOptions{
+		Linter: rules.LinterRules{
+			Use: true,
+			Rules: rules.LinterRulesGroup{
+				BestPractices: &rules.BestPracticesRulesGroup{
+					Use:              true,
+					UseSliceCapacity: &rules.LinterBaseRule{Severity: "warn"},
+				},
+				Correctness: &rules.CorrectnessRulesGroup{
+					Use:                    true,
+					BoolLiteralExpressions: &rules.LinterBaseRule{Severity: "warn"},
+				},
+				Style: &rules.StyleRulesGroup{
+					Use:          true,
+					PreferIncDec: &rules.LinterBaseRule{Severity: "warn"},
+				},
+			},
+			Issues: &rules.LinterIssuesOptions{},
+		},
+	}
+
+	l := New(true, false, cfg, 0, 0)
+	issues, err := l.ProcessPath(path)
+	if err != nil {
+		t.Fatalf("ProcessPath failed: %v", err)
+	}
+
+	if len(issues) != 4 {
+		t.Fatalf("expected 4 autofixed issues, got %d", len(issues))
+	}
+
+	for _, issue := range issues {
+		if !issue.WasFixed() {
+			t.Fatalf("expected issue %d to be marked as fixed", issue.ID)
+		}
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read rewritten file: %v", err)
+	}
+
+	got := string(data)
+	if !strings.Contains(got, "make([]int, len(items), len(items))") {
+		t.Fatalf("expected slice capacity autofix, got:\n%s", got)
+	}
+	if !strings.Contains(got, "count++") {
+		t.Fatalf("expected prefer-inc-dec autofix, got:\n%s", got)
+	}
+	if !strings.Contains(got, "if flag {") {
+		t.Fatalf("expected bool literal simplification in if, got:\n%s", got)
+	}
+	if !strings.Contains(got, "return flag") {
+		t.Fatalf("expected bool literal simplification in return, got:\n%s", got)
+	}
+}
+
+func TestProcessPath_UnsafeWriteReordersContextParam(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sample.go")
+
+	src := `package sample
+
+import "context"
+
+func Handle(name string, ctx context.Context, count int) {
+	_, _, _ = name, ctx, count
+}
+`
+
+	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	cfg := &rules.LinterOptions{
+		Linter: rules.LinterRules{
+			Use: true,
+			Rules: rules.LinterRulesGroup{
+				BestPractices: &rules.BestPracticesRulesGroup{
+					Use:                    true,
+					UseContextInFirstParam: &rules.LinterBaseRule{Severity: "warn"},
+				},
+			},
+			Issues: &rules.LinterIssuesOptions{},
+		},
+	}
+
+	safeRun := New(true, false, cfg, 0, 0)
+	safeIssues, err := safeRun.ProcessPath(path)
+	if err != nil {
+		t.Fatalf("safe ProcessPath failed: %v", err)
+	}
+
+	if len(safeIssues) != 1 {
+		t.Fatalf("expected 1 issue without unsafe autofix, got %d", len(safeIssues))
+	}
+	if safeIssues[0].WasFixed() {
+		t.Fatalf("did not expect context issue to be fixed without --unsafe")
+	}
+	if !safeIssues[0].RequiresUnsafeFix() {
+		t.Fatalf("expected context issue to require unsafe fix")
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read original file: %v", err)
+	}
+	if !strings.Contains(string(data), "func Handle(name string, ctx context.Context, count int)") {
+		t.Fatalf("expected signature to remain unchanged without --unsafe, got:\n%s", string(data))
+	}
+
+	unsafeRun := New(true, true, cfg, 0, 0)
+	unsafeIssues, err := unsafeRun.ProcessPath(path)
+	if err != nil {
+		t.Fatalf("unsafe ProcessPath failed: %v", err)
+	}
+
+	if len(unsafeIssues) != 1 {
+		t.Fatalf("expected 1 issue with unsafe autofix, got %d", len(unsafeIssues))
+	}
+	if !unsafeIssues[0].WasFixed() {
+		t.Fatalf("expected unsafe context issue to be marked as fixed")
+	}
+
+	updated, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read rewritten file: %v", err)
+	}
+
+	if !strings.Contains(string(updated), "func Handle(ctx context.Context, name string, count int)") {
+		t.Fatalf("expected context parameter to move first, got:\n%s", string(updated))
 	}
 }
 

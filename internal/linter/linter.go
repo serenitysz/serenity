@@ -22,7 +22,8 @@ type Linter struct {
 func New(write, unsafe bool, config *rules.LinterOptions, maxIssues int, maxFileSize int64) *Linter {
 	workers := runtime.GOMAXPROCS(0)
 	activeRules := BuildActiveRules(config)
-	autofix := activeRules.HasAutofixRules && (write || config.ShouldAutofix())
+	autofix := write || config.ShouldAutofix()
+	mutating := (activeRules.HasAutofixRules && autofix) || (activeRules.HasUnsafeAutofixRules && write && unsafe)
 	effectiveMaxIssues := maxIssues
 	parseMode := parser.ParseComments | parser.SkipObjectResolution
 
@@ -30,7 +31,7 @@ func New(write, unsafe bool, config *rules.LinterOptions, maxIssues int, maxFile
 		parseMode = parser.ParseComments
 	}
 
-	if autofix {
+	if mutating {
 		effectiveMaxIssues = 0
 	}
 
@@ -53,6 +54,6 @@ func New(write, unsafe bool, config *rules.LinterOptions, maxIssues int, maxFile
 		Workers:     workers,
 		ParseMode:   parseMode,
 		ActiveRules: activeRules,
-		Cache:       newCacheStore(config, autofix, unsafe),
+		Cache:       newCacheStore(config, mutating, unsafe),
 	}
 }

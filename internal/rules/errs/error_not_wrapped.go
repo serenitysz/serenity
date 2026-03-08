@@ -40,6 +40,12 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
+	issue := rules.Issue{
+		ArgStr1:  rules.PackContext2(ident.Name, rules.CurrentFunctionName(runner)),
+		ID:       rules.ErrorNotWrappedID,
+		Severity: r.Severity,
+	}
+
 	if runner.ShouldAutofix() {
 		importName := ensureImport(runner.File, "fmt")
 		if importName == "" {
@@ -58,13 +64,11 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 		}
 
 		runner.Modified = true
+		runner.ReportFixed(ident.Pos(), issue)
+		return
 	}
 
-	runner.Report(ident.Pos(), rules.Issue{
-		ArgStr1:  rules.PackContext2(ident.Name, rules.CurrentFunctionName(runner)),
-		ID:       rules.ErrorNotWrappedID,
-		Severity: r.Severity,
-	})
+	runner.ReportFixable(ident.Pos(), issue)
 }
 
 func selectorForImport(importName, ident string) ast.Expr {

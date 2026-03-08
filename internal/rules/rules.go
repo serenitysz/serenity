@@ -72,6 +72,10 @@ func (r *Runner) ShouldAutofix() bool {
 	return r != nil && r.Autofix
 }
 
+func (r *Runner) ShouldAutofixUnsafe() bool {
+	return r != nil && r.Autofix && r.Unsafe
+}
+
 func (r *Runner) Report(pos token.Pos, issue Issue) bool {
 	if r.ReachedMax() {
 		return false
@@ -96,6 +100,26 @@ func (r *Runner) Report(pos token.Pos, issue Issue) bool {
 	return true
 }
 
+func (r *Runner) ReportFixable(pos token.Pos, issue Issue) bool {
+	issue.Flags |= IssueFixableFlag
+	return r.Report(pos, issue)
+}
+
+func (r *Runner) ReportUnsafeFixable(pos token.Pos, issue Issue) bool {
+	issue.Flags |= IssueUnsafeFixableFlag
+	return r.Report(pos, issue)
+}
+
+func (r *Runner) ReportFixed(pos token.Pos, issue Issue) bool {
+	issue.Flags |= IssueFixableFlag | IssueFixedFlags
+	return r.Report(pos, issue)
+}
+
+func (r *Runner) ReportFixedUnsafe(pos token.Pos, issue Issue) bool {
+	issue.Flags |= IssueUnsafeFixableFlag | IssueFixedFlags
+	return r.Report(pos, issue)
+}
+
 func (i Issue) Filename() string {
 	return i.Path
 }
@@ -108,11 +132,25 @@ func (i Issue) ColumnNumber() int {
 	return int(i.Column)
 }
 
+func (i Issue) IsFixable() bool {
+	return i.Flags&(IssueFixableFlag|IssueUnsafeFixableFlag) != 0
+}
+
+func (i Issue) RequiresUnsafeFix() bool {
+	return i.Flags&IssueUnsafeFixableFlag != 0
+}
+
+func (i Issue) WasFixed() bool {
+	return i.Flags&IssueFixedFlags != 0
+}
+
 // Issue flags
 
 const (
 	IssueExperimentalFlag uint8 = 1 << iota
 	IssueFixedFlags
+	IssueFixableFlag
+	IssueUnsafeFixableFlag
 )
 
 type GitOptions struct {

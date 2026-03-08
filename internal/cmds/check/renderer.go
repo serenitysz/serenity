@@ -59,7 +59,14 @@ func (r *issueRenderer) write(issue rules.Issue, msg string) {
 	b.WriteString(render.Paint(ruleName, render.Gray, false))
 	b.WriteString(render.Paint(fmt.Sprintf(" (%d)", issue.ID), render.Gray, false))
 
-	if rules.IsFixable(issue.ID) {
+	switch {
+	case issue.WasFixed():
+		b.WriteByte(' ')
+		b.WriteString(render.Paint("[fixed]", render.Green, false))
+	case issue.RequiresUnsafeFix():
+		b.WriteByte(' ')
+		b.WriteString(render.Paint("[unsafe fix]", render.Yellow, false))
+	case issue.IsFixable():
 		b.WriteByte(' ')
 		b.WriteString(render.Paint("[fixable]", render.Green, false))
 	}

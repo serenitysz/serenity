@@ -11,6 +11,10 @@ import (
 	"math"
 )
 
+func c(c context.Context, abc int) {
+
+}
+
 var reportNumber = 42
 var Exported_Value = 21
 
@@ -44,21 +48,21 @@ func useImports() {
 	fmt.Println("redundant alias import in action")
 }
 
-func WrongContext(name string, ctx context.Context, a int, b int, c int, d int) {
+func WrongContext(ctx context.Context, name string, a int, b int, c int, d int) {
 	_ = ctx
 
-	numbers := make([]int, 5)
+	numbers := make([]int, 5, 5)
 	localNumber := 7
 	shouldRun := name != ""
 
-	if shouldRun == true {
+	if !!shouldRun {
 		fmt.Println("bool literal expression", localNumber, numbers)
 	}
 
 	if a == 1 {
 	}
 
-	for i := 0; i < 3; i += 1 {
+	for i := 0; i < 3; i++ {
 		defer fmt.Println(i)
 	}
 
@@ -69,7 +73,7 @@ func WrongContext(name string, ctx context.Context, a int, b int, c int, d int) 
 }
 
 func namedResult(flag bool) (result string, err error) {
-	if flag == true {
+	if flag {
 		return
 	}
 

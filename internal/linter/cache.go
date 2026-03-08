@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	cacheSchemaVersion = "v4"
-	cacheMagic         = "SRC4"
+	cacheSchemaVersion = "v5"
+	cacheMagic         = "SRC5"
 	cacheHashSize      = sha256.Size
 	cacheSampleChunk   = 64
 	cacheSampleWindows = 4
@@ -645,7 +645,7 @@ func countFixableIssues(issues []rules.Issue) int {
 	count := 0
 
 	for _, issue := range issues {
-		if rules.IsFixable(issue.ID) {
+		if issue.IsFixable() {
 			count++
 		}
 	}

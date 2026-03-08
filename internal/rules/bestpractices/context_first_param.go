@@ -2,6 +2,7 @@ package bestpractices
 
 import (
 	"go/ast"
+	"go/token"
 
 	"github.com/serenitysz/serenity/internal/rules"
 )
@@ -34,6 +35,8 @@ func (c *ContextFirstRule) Run(runner *rules.Runner, node ast.Node) {
 	}
 
 	params := fn.Type.Params.List
+	offenders := make([]rules.Issue, 0, len(params)-1)
+	positions := make([]token.Pos, 0, len(params)-1)
 
 	for i := 1; i < len(params); i++ {
 		p := params[i]
@@ -48,14 +51,68 @@ func (c *ContextFirstRule) Run(runner *rules.Runner, node ast.Node) {
 				paramName = p.Names[0].Name
 			}
 
-			runner.Report(p.Pos(), rules.Issue{
+			offenders = append(offenders, rules.Issue{
 				ArgStr1:  rules.PackContext2(paramName, fn.Name.Name),
 				ArgInt1:  uint32(i + 1),
 				ID:       rules.UseContextInFirstParamID,
 				Severity: c.Severity,
 			})
+			positions = append(positions, p.Pos())
 		}
 	}
+
+	if len(offenders) == 0 {
+		return
+	}
+
+	if runner.ShouldAutofixUnsafe() {
+		reordered := reorderContextParams(params)
+		if !sameFieldOrder(params, reordered) {
+			fn.Type.Params.List = reordered
+			runner.Modified = true
+		}
+
+		for i, issue := range offenders {
+			runner.ReportFixedUnsafe(positions[i], issue)
+		}
+		return
+	}
+
+	for i, issue := range offenders {
+		runner.ReportUnsafeFixable(positions[i], issue)
+	}
+}
+
+func reorderContextParams(params []*ast.Field) []*ast.Field {
+	reordered := make([]*ast.Field, 0, len(params))
+
+	for _, param := range params {
+		if isContextType(param.Type) {
+			reordered = append(reordered, param)
+		}
+	}
+
+	for _, param := range params {
+		if !isContextType(param.Type) {
+			reordered = append(reordered, param)
+		}
+	}
+
+	return reordered
+}
+
+func sameFieldOrder(before, after []*ast.Field) bool {
+	if len(before) != len(after) {
+		return false
+	}
+
+	for i := range before {
+		if before[i] != after[i] {
+			return false
+		}
+	}
+
+	return true
 }
 
 func isContextType(expr ast.Expr) bool {

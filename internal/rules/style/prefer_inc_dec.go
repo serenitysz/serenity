@@ -44,9 +44,37 @@ func (r *PreferIncDecRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	runner.Report(stmt.Pos(), rules.Issue{
+	issue := rules.Issue{
 		ArgStr1:  rules.PackContext2(rules.ExprName(stmt.Lhs[0]), rules.CurrentFunctionName(runner)),
 		ID:       rules.PreferIncDecID,
 		Severity: r.Severity,
-	})
+	}
+
+	if runner.ShouldAutofix() {
+		var op token.Token
+
+		switch stmt.Tok {
+		case token.ADD_ASSIGN:
+			op = token.INC
+		case token.SUB_ASSIGN:
+			op = token.DEC
+		default:
+			runner.Report(stmt.Pos(), issue)
+			return
+		}
+
+		replacement := &ast.IncDecStmt{
+			X:      stmt.Lhs[0],
+			TokPos: stmt.TokPos,
+			Tok:    op,
+		}
+
+		if rules.ReplaceNode(runner.Parent, stmt, replacement) {
+			runner.Modified = true
+			runner.ReportFixed(stmt.Pos(), issue)
+			return
+		}
+	}
+
+	runner.ReportFixable(stmt.Pos(), issue)
 }

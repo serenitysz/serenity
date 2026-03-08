@@ -52,19 +52,20 @@ func (r *ErrorStringFormatRule) Run(runner *rules.Runner, node ast.Node) {
 			continue
 		}
 
-		if runner.ShouldAutofix() {
-			runner.Modified = true
-
-			lit.Value = strconv.Quote(fixErrorString(msg))
-
-			return
-		}
-
-		runner.Report(lit.Pos(), rules.Issue{
+		issue := rules.Issue{
 			ArgStr1:  rules.PackContext2(msg, rules.CurrentFunctionName(runner)),
 			ID:       rules.ErrorStringFormatID,
 			Severity: r.Severity,
-		})
+		}
+
+		if runner.ShouldAutofix() {
+			runner.Modified = true
+			lit.Value = strconv.Quote(fixErrorString(msg))
+			runner.ReportFixed(lit.Pos(), issue)
+			return
+		}
+
+		runner.ReportFixable(lit.Pos(), issue)
 	}
 }
 

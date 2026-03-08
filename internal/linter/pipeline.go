@@ -317,7 +317,7 @@ func (l *Linter) analyzePackage(
 		pkgPaths:     pkgPaths,
 		fset:         fset,
 		maxIssues:    maxIssues,
-		autofix:      l.ActiveRules.HasAutofixRules && (l.Write || l.Config.ShouldAutofix()),
+		autofix:      l.Write || l.Config.ShouldAutofix(),
 		rules:        l.ActiveRules,
 		suppressions: suppressions,
 		shouldStop:   shouldStop,

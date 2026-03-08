@@ -68,8 +68,9 @@ type ActiveRules struct {
 	AssignStmt []rules.Rule
 	DeferStmt  []rules.Rule
 
-	NeedsConstAnalysis bool
-	HasAutofixRules    bool
+	NeedsConstAnalysis    bool
+	HasAutofixRules       bool
+	HasUnsafeAutofixRules bool
 }
 
 func (a *ActiveRules) Run(runner *rules.Runner, node ast.Node) {

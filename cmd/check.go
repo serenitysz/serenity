@@ -17,7 +17,7 @@ func NewCheckCmd() *cobra.Command {
 	}
 
 	cmd.Flags().Int("max-issues", 0, "Maximum number of issues")
-	cmd.Flags().BoolVarP(&opts.Unsafe, "unsafe", "u", false, "Apply unsafe fixes")
+	cmd.Flags().BoolVarP(&opts.Unsafe, "unsafe", "u", false, "Apply unsafe fixes (requires --write)")
 	cmd.Flags().BoolVarP(&opts.Write, "write", "w", false, "Write changes to files")
 	cmd.Flags().StringVarP(&opts.ConfigPath, "config", "c", "", "Use a custom config")
 	cmd.Flags().Int64VarP(&opts.MaxFileSize, "max-file-size", "m", 0, "Maximum file size")

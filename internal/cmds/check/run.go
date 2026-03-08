@@ -10,6 +10,10 @@ import (
 )
 
 func Run(cmd *cobra.Command, args []string, opts *CheckOptions) error {
+	if err := validateOptions(opts); err != nil {
+		return err
+	}
+
 	cfg, err := loadConfig(opts.ConfigPath)
 
 	if err != nil {
@@ -31,6 +35,14 @@ func Run(cmd *cobra.Command, args []string, opts *CheckOptions) error {
 	)
 
 	return runOnPaths(l, args)
+}
+
+func validateOptions(opts *CheckOptions) error {
+	if opts != nil && opts.Unsafe && !opts.Write {
+		return exception.CommandError("--unsafe requires --write")
+	}
+
+	return nil
 }
 
 func resolveMaxIssues(cmd *cobra.Command, cfg *rules.LinterOptions) (int, error) {

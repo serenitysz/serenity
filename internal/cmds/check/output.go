@@ -11,13 +11,15 @@ import (
 )
 
 type issueSummary struct {
-	hasIssues bool
-	errors    int
-	warnings  int
-	infos     int
-	fixables  int
-	writeMode bool
-	renderer  issueRenderer
+	hasIssues      bool
+	errors         int
+	warnings       int
+	infos          int
+	fixed          int
+	fixables       int
+	unsafeFixables int
+	writeMode      bool
+	renderer       issueRenderer
 }
 
 func newIssueSummary(writeMode bool) issueSummary {
@@ -37,7 +39,13 @@ func (s *issueSummary) add(issues []rules.Issue) {
 	for _, issue := range issues {
 		msg := rules.FormatMessage(issue)
 		s.addSeverity(issue.Severity)
-		if rules.IsFixable(issue.ID) {
+
+		switch {
+		case issue.WasFixed():
+			s.fixed++
+		case issue.RequiresUnsafeFix():
+			s.unsafeFixables++
+		case issue.IsFixable():
 			s.fixables++
 		}
 
@@ -96,14 +104,30 @@ func (s issueSummary) footer() string {
 	base := fmt.Sprintf("%s found (%s)", pluralize(total, "issue"), s.describe())
 
 	if s.fixables == 0 {
-		return base
+		if s.fixed == 0 && s.unsafeFixables == 0 {
+			return base
+		}
 	}
 
-	if s.writeMode {
-		return fmt.Sprintf("%s, %s automatically fixed", base, pluralize(s.fixables, "issue"))
+	parts := make([]string, 0, 3)
+
+	if s.fixed > 0 {
+		parts = append(parts, fmt.Sprintf("%s automatically fixed", pluralize(s.fixed, "issue")))
 	}
 
-	return fmt.Sprintf("%s, %s. Use --write to apply automatic fixes.", base, fixableText(s.fixables))
+	if s.fixables > 0 {
+		if !s.writeMode && s.unsafeFixables == 0 && s.fixed == 0 {
+			return fmt.Sprintf("%s, %s. Use --write to apply automatic fixes.", base, fixableText(s.fixables))
+		}
+
+		parts = append(parts, fixableWithWriteText(s.fixables))
+	}
+
+	if s.unsafeFixables > 0 {
+		parts = append(parts, unsafeFixableText(s.unsafeFixables))
+	}
+
+	return fmt.Sprintf("%s, %s", base, joinSummaryParts(parts))
 }
 
 func fixableText(count int) string {
@@ -112,6 +136,35 @@ func fixableText(count int) string {
 	}
 
 	return fmt.Sprintf("%d issues are fixable", count)
+}
+
+func fixableWithWriteText(count int) string {
+	if count == 1 {
+		return "1 issue is fixable with --write"
+	}
+
+	return fmt.Sprintf("%d issues are fixable with --write", count)
+}
+
+func unsafeFixableText(count int) string {
+	if count == 1 {
+		return "1 issue requires --write --unsafe to apply automatic fixes"
+	}
+
+	return fmt.Sprintf("%d issues require --write --unsafe to apply automatic fixes", count)
+}
+
+func joinSummaryParts(parts []string) string {
+	switch len(parts) {
+	case 0:
+		return ""
+	case 1:
+		return parts[0]
+	case 2:
+		return parts[0] + " and " + parts[1]
+	default:
+		return parts[0] + ", " + parts[1] + ", and " + parts[2]
+	}
 }
 
 type summaryError struct {

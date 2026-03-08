@@ -76,6 +76,7 @@ func BuildActiveRules(cfg *rules.LinterOptions) *ActiveRules {
 			active.FuncDecl = append(active.FuncDecl, &bestpractices.ContextFirstRule{
 				Severity: rules.ParseSeverity(bp.UseContextInFirstParam.Severity),
 			})
+			active.HasUnsafeAutofixRules = true
 		}
 
 		if bp.AvoidEmptyStructs != nil {
@@ -107,6 +108,7 @@ func BuildActiveRules(cfg *rules.LinterOptions) *ActiveRules {
 			active.CallExpr = append(active.CallExpr, &bestpractices.UseSliceCapacityRule{
 				Severity: rules.ParseSeverity(bp.UseSliceCapacity.Severity),
 			})
+			active.HasAutofixRules = true
 		}
 
 		if bp.NoBareReturns != nil {
@@ -127,6 +129,7 @@ func BuildActiveRules(cfg *rules.LinterOptions) *ActiveRules {
 			active.AssignStmt = append(active.AssignStmt, &style.PreferIncDecRule{
 				Severity: rules.ParseSeverity(stl.PreferIncDec.Severity),
 			})
+			active.HasAutofixRules = true
 		}
 	}
 
@@ -179,6 +182,7 @@ func BuildActiveRules(cfg *rules.LinterOptions) *ActiveRules {
 			active.BinaryExpr = append(active.BinaryExpr, &correctness.BooleanLiteralExpressionsRule{
 				Severity: rules.ParseSeverity(crr.BoolLiteralExpressions.Severity),
 			})
+			active.HasAutofixRules = true
 		}
 	}
 

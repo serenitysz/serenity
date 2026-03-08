@@ -108,11 +108,37 @@ func TestIssueRendererMarksFixableIssues(t *testing.T) {
 		Path:     "sample.go",
 		Line:     4,
 		Column:   2,
+		Flags:    rules.IssueFixableFlag,
 		Severity: rules.SeverityWarn,
 	}, `import alias "fmt" is redundant for package "fmt"`)
 
 	if got := buf.String(); !bytes.Contains([]byte(got), []byte("[fixable]")) {
 		t.Fatalf("expected fixable marker in output, got %q", got)
+	}
+}
+
+func TestIssueRendererMarksUnsafeFixableIssues(t *testing.T) {
+	var buf bytes.Buffer
+
+	render.SetNoColor(true)
+	defer render.SetNoColor(false)
+
+	r := issueRenderer{
+		cwd: "",
+		out: &buf,
+	}
+
+	r.write(rules.Issue{
+		ID:       rules.UseContextInFirstParamID,
+		Path:     "sample.go",
+		Line:     4,
+		Column:   2,
+		Flags:    rules.IssueUnsafeFixableFlag,
+		Severity: rules.SeverityWarn,
+	}, `parameter "ctx" in function "handle" has type context.Context and must be the first parameter`)
+
+	if got := buf.String(); !bytes.Contains([]byte(got), []byte("[unsafe fix]")) {
+		t.Fatalf("expected unsafe fix marker in output, got %q", got)
 	}
 }
 
@@ -175,5 +201,22 @@ func TestSummaryErrorWritesFooterWithoutCommandPrefix(t *testing.T) {
 
 	if got := buf.String(); got != "1 issue found (1 error), 1 issue is fixable. Use --write to apply automatic fixes.\n" {
 		t.Fatalf("unexpected summary rendering: %q", got)
+	}
+}
+
+func TestSummaryErrorMentionsUnsafeFixes(t *testing.T) {
+	summary := issueSummary{
+		hasIssues:      true,
+		warnings:       1,
+		unsafeFixables: 1,
+	}
+
+	err := summary.err()
+	if !errors.Is(err, exception.ErrCommand) {
+		t.Fatalf("expected command error, got %v", err)
+	}
+
+	if got := exception.Message(err); got != "1 issue found (1 warning), 1 issue requires --write --unsafe to apply automatic fixes" {
+		t.Fatalf("unexpected unsafe summary message: %q", got)
 	}
 }
