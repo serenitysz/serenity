@@ -39,6 +39,7 @@ func BuildActiveRules(cfg *rules.LinterOptions) *ActiveRules {
 			active.ImportSpec = append(active.ImportSpec, &imports.RedundantImportAliasRule{
 				Severity: rules.ParseSeverity(imp.RedundantImportAlias.Severity),
 			})
+			active.HasAutofixRules = true
 		}
 	}
 
@@ -47,12 +48,14 @@ func BuildActiveRules(cfg *rules.LinterOptions) *ActiveRules {
 			active.ReturnStmt = append(active.ReturnStmt, &errs.ErrorStringFormatRule{
 				Severity: rules.ParseSeverity(errCfg.ErrorStringFormat.Severity),
 			})
+			active.HasAutofixRules = true
 		}
 
 		if errCfg.ErrorNotWrapped != nil {
 			active.ReturnStmt = append(active.ReturnStmt, &errs.ErrorNotWrappedRule{
 				Severity: rules.ParseSeverity(errCfg.ErrorNotWrapped.Severity),
 			})
+			active.HasAutofixRules = true
 		}
 	}
 

@@ -40,12 +40,14 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 		return
 	}
 
-	if runner.Cfg.ShouldAutofix() {
+	if runner.ShouldAutofix() {
+		importName := ensureImport(runner.File, "fmt")
+		if importName == "" {
+			importName = "fmt"
+		}
+
 		ret.Results[0] = &ast.CallExpr{
-			Fun: &ast.SelectorExpr{
-				X:   ast.NewIdent("fmt"),
-				Sel: ast.NewIdent("Errorf"),
-			},
+			Fun: selectorForImport(importName, "Errorf"),
 			Args: []ast.Expr{
 				&ast.BasicLit{
 					Kind:  token.STRING,
@@ -63,4 +65,15 @@ func (r *ErrorNotWrappedRule) Run(runner *rules.Runner, node ast.Node) {
 		ID:       rules.ErrorNotWrappedID,
 		Severity: r.Severity,
 	})
+}
+
+func selectorForImport(importName, ident string) ast.Expr {
+	if importName == "" {
+		return ast.NewIdent(ident)
+	}
+
+	return &ast.SelectorExpr{
+		X:   ast.NewIdent(importName),
+		Sel: ast.NewIdent(ident),
+	}
 }

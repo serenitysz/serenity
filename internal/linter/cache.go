@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	cacheSchemaVersion = "v3"
-	cacheMagic         = "SRC3"
+	cacheSchemaVersion = "v4"
+	cacheMagic         = "SRC4"
 	cacheHashSize      = sha256.Size
 	cacheSampleChunk   = 64
 	cacheSampleWindows = 4
@@ -28,6 +28,7 @@ type cacheStore struct {
 	enabled    bool
 	dir        string
 	configHash string
+	mutating   bool
 }
 
 type packageInput struct {
@@ -45,8 +46,9 @@ type packageInput struct {
 }
 
 type cacheHeader struct {
-	IssueCount int
-	IssueStart int
+	IssueCount   int
+	FixableCount int
+	IssueStart   int
 }
 
 type cacheDecoder struct {
@@ -54,8 +56,8 @@ type cacheDecoder struct {
 	off  int
 }
 
-func newCacheStore(cfg *rules.LinterOptions, write, unsafe bool) *cacheStore {
-	if cfg == nil || write || unsafe || cfg.ShouldAutofix() {
+func newCacheStore(cfg *rules.LinterOptions, mutating, unsafe bool) *cacheStore {
+	if cfg == nil || unsafe {
 		return &cacheStore{}
 	}
 
@@ -73,6 +75,7 @@ func newCacheStore(cfg *rules.LinterOptions, write, unsafe bool) *cacheStore {
 		enabled:    true,
 		dir:        dir,
 		configHash: cacheConfigHash(cfg),
+		mutating:   mutating,
 	}
 }
 
@@ -140,6 +143,10 @@ func (c *cacheStore) load(inputs []packageInput, limit int) ([]rules.Issue, bool
 		return nil, false
 	}
 
+	if !c.canReuse(header) {
+		return nil, false
+	}
+
 	return decodeCachedIssues(data, header, inputs, limit)
 }
 
@@ -149,12 +156,20 @@ func (c *cacheStore) loadRaw(inputs []packageInput) (*cachedBatch, bool) {
 		return nil, false
 	}
 
+	if !c.canReuse(header) {
+		return nil, false
+	}
+
 	return &cachedBatch{
 		data:       data,
 		issueCount: header.IssueCount,
 		issueStart: header.IssueStart,
 		inputs:     inputs,
 	}, true
+}
+
+func (c *cacheStore) canReuse(header cacheHeader) bool {
+	return !c.mutating || header.FixableCount == 0
 }
 
 func (c *cacheStore) loadValidated(inputs []packageInput) ([]byte, cacheHeader, bool) {
@@ -323,6 +338,7 @@ func encodeCache(inputs []packageInput, issues []rules.Issue, configHash string)
 	}
 
 	buf = appendUvarint(buf, uint64(len(issues)))
+	buf = appendUvarint(buf, uint64(countFixableIssues(issues)))
 
 	for _, issue := range issues {
 		normalizedPath := normalizeIssuePath(issue.Filename())
@@ -442,8 +458,13 @@ func validateCacheHeader(data []byte, inputs []packageInput, configHash string) 
 	if err != nil {
 		return header, err
 	}
+	fixableCount64, err := dec.readUvarint()
+	if err != nil {
+		return header, err
+	}
 
 	header.IssueCount = int(issueCount64)
+	header.FixableCount = int(fixableCount64)
 	header.IssueStart = dec.off
 
 	return header, nil
@@ -618,6 +639,18 @@ func estimateCacheSize(inputs []packageInput, issues []rules.Issue, configHash s
 	}
 
 	return size
+}
+
+func countFixableIssues(issues []rules.Issue) int {
+	count := 0
+
+	for _, issue := range issues {
+		if rules.IsFixable(issue.ID) {
+			count++
+		}
+	}
+
+	return count
 }
 
 func normalizeIssuePath(path string) string {

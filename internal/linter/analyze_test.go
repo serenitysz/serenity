@@ -1,6 +1,7 @@
 package linter
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -445,6 +446,130 @@ var report = 7
 
 	if !before.ModTime().Equal(after.ModTime()) {
 		t.Fatalf("expected cache entry to be reused without rewrite, before=%v after=%v", before.ModTime(), after.ModTime())
+	}
+}
+
+func TestProcessPath_WriteIgnoresMaxIssuesAndFixesAllFiles(t *testing.T) {
+	dir := t.TempDir()
+	cacheDir := t.TempDir()
+
+	t.Setenv("SERENITY_CACHE_DIR", cacheDir)
+
+	const packageCount = 16
+
+	for i := 1; i <= packageCount; i++ {
+		pkgDir := filepath.Join(dir, fmt.Sprintf("pkg%02d", i))
+		path := filepath.Join(pkgDir, "sample.go")
+
+		if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", pkgDir, err)
+		}
+
+		src := "package pkg\n\nimport fmt \"fmt\"\n\nfunc handle() { _ = fmt.Sprintf(\"x\") }\n"
+		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+			t.Fatalf("write %s: %v", path, err)
+		}
+	}
+
+	threads := 4
+	cfg := &rules.LinterOptions{
+		Linter: rules.LinterRules{
+			Use: true,
+			Rules: rules.LinterRulesGroup{
+				Imports: &rules.ImportRulesGroup{
+					Use: true,
+					RedundantImportAlias: &rules.LinterBaseRule{
+						Severity: "error",
+					},
+				},
+			},
+			Issues: &rules.LinterIssuesOptions{},
+		},
+		Performance: &rules.PerformanceOptions{
+			Use:     true,
+			Caching: utils.Ptr(true),
+			Threads: &threads,
+		},
+	}
+
+	writeRun := New(true, false, cfg, 1, 0)
+	issues, err := writeRun.ProcessPath(dir)
+	if err != nil {
+		t.Fatalf("write ProcessPath failed: %v", err)
+	}
+
+	if len(issues) != packageCount {
+		t.Fatalf("expected write run to report %d issues before applying fixes, got %d", packageCount, len(issues))
+	}
+
+	readRun := New(false, false, cfg, 1, 0)
+	followUp, err := readRun.ProcessPath(dir)
+	if err != nil {
+		t.Fatalf("follow-up ProcessPath failed: %v", err)
+	}
+
+	if len(followUp) != 0 {
+		t.Fatalf("expected all files to be fixed during write run, got %d remaining issues", len(followUp))
+	}
+}
+
+func TestProcessPath_MaxIssuesUsesStableTraversalOrder(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	const packageCount = 64
+
+	for i := 1; i <= packageCount; i++ {
+		pkgDir := filepath.Join(dir, fmt.Sprintf("pkg%03d", i))
+		path := filepath.Join(pkgDir, "sample.go")
+
+		if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", pkgDir, err)
+		}
+
+		src := fmt.Sprintf("package pkg%03d\n\nvar report = 7\n", i)
+		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+			t.Fatalf("write %s: %v", path, err)
+		}
+	}
+
+	threads := 8
+	cfg := &rules.LinterOptions{
+		Linter: rules.LinterRules{
+			Use: true,
+			Rules: rules.LinterRulesGroup{
+				BestPractices: &rules.BestPracticesRulesGroup{
+					Use: true,
+					AlwaysPreferConst: &rules.LinterBaseRule{
+						Severity: "warn",
+					},
+				},
+			},
+			Issues: &rules.LinterIssuesOptions{},
+		},
+		Performance: &rules.PerformanceOptions{
+			Use:     true,
+			Caching: utils.Ptr(false),
+			Threads: &threads,
+		},
+	}
+
+	expectedPath := filepath.Join(dir, "pkg001", "sample.go")
+
+	for i := 0; i < 12; i++ {
+		l := New(false, false, cfg, 1, 0)
+		issues, err := l.ProcessPath(dir)
+		if err != nil {
+			t.Fatalf("ProcessPath failed on iteration %d: %v", i, err)
+		}
+
+		if len(issues) != 1 {
+			t.Fatalf("expected 1 issue on iteration %d, got %d", i, len(issues))
+		}
+
+		if issues[0].Filename() != expectedPath {
+			t.Fatalf("expected stable first issue %q on iteration %d, got %q", expectedPath, i, issues[0].Filename())
+		}
 	}
 }
 

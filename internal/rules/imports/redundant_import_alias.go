@@ -45,7 +45,7 @@ func (r *RedundantImportAliasRule) Run(runner *rules.Runner, node ast.Node) {
 			Severity: r.Severity,
 		})
 
-		if runner.Cfg.ShouldAutofix() {
+		if runner.ShouldAutofix() {
 			spec.Name = nil
 			runner.Modified = true
 		}

@@ -68,6 +68,10 @@ func (r *Runner) ReachedMax() bool {
 	return r.MaxIssues > 0 && r.IssuesCount != nil && int(*r.IssuesCount) >= r.MaxIssues
 }
 
+func (r *Runner) ShouldAutofix() bool {
+	return r != nil && r.Autofix
+}
+
 func (r *Runner) Report(pos token.Pos, issue Issue) bool {
 	if r.ReachedMax() {
 		return false

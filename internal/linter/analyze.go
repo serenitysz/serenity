@@ -36,7 +36,7 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 			Issues:          &issues,
 			IssuesCount:     new(uint16),
 			ConstCandidates: constCandidates,
-			Autofix:         l.Write || l.Config.ShouldAutofix(),
+			Autofix:         params.autofix,
 			ShouldStop: func() bool {
 				return params.shouldStop != nil && params.shouldStop(len(allIssues)+len(issues))
 			},
@@ -55,10 +55,11 @@ func (l *Linter) Analyze(params AnalysisParams) ([]rules.Issue, error) {
 		if runner.Modified {
 			var buf bytes.Buffer
 
-			if err := format.Node(&buf, params.fset, file); err == nil {
-				if err := os.WriteFile(filePath, buf.Bytes(), DEFAULT_FILE_MODE); err != nil {
-					return allIssues, exception.InternalError("failed to write file %s: %w", filePath, err)
-				}
+			if err := format.Node(&buf, params.fset, file); err != nil {
+				return allIssues, exception.InternalError("could not format %q after applying fixes: %w", filePath, err)
+			}
+			if err := os.WriteFile(filePath, buf.Bytes(), DEFAULT_FILE_MODE); err != nil {
+				return allIssues, exception.InternalError("could not write %q after applying fixes: %w", filePath, err)
 			}
 		}
 	}

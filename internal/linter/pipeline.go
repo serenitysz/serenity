@@ -209,7 +209,10 @@ func (l *Linter) processFile(path string, size int64) ([]rules.Issue, error) {
 			return nil, err
 		}
 
-		_ = l.Cache.save(inputs, issues)
+		issues, err = l.refreshCacheForInputs(inputs, issues)
+		if err != nil {
+			return nil, err
+		}
 
 		if l.MaxIssues > 0 {
 			return truncateIssues(issues, l.MaxIssues), nil
@@ -292,7 +295,10 @@ func (l *Linter) processCachedPackageJob(job PackageJob, totalIssues *int64) (is
 	}
 
 	if complete {
-		_ = l.Cache.save(inputs, issues)
+		issues, err = l.refreshCacheForInputs(inputs, issues)
+		if err != nil {
+			return issueBatch{}, err
+		}
 	}
 
 	return issueBatch{issues: l.limitIssuesByTotal(issues, totalIssues)}, nil
@@ -311,10 +317,63 @@ func (l *Linter) analyzePackage(
 		pkgPaths:     pkgPaths,
 		fset:         fset,
 		maxIssues:    maxIssues,
+		autofix:      l.ActiveRules.HasAutofixRules && (l.Write || l.Config.ShouldAutofix()),
 		rules:        l.ActiveRules,
 		suppressions: suppressions,
 		shouldStop:   shouldStop,
 	})
+}
+
+func (l *Linter) analyzePackageReadonly(
+	pkgFiles []*ast.File,
+	pkgPaths []string,
+	fset *token.FileSet,
+	suppressions map[string][]rules.Suppression,
+) ([]rules.Issue, error) {
+	return l.Analyze(AnalysisParams{
+		pkgFiles:     pkgFiles,
+		pkgPaths:     pkgPaths,
+		fset:         fset,
+		maxIssues:    0,
+		autofix:      false,
+		rules:        l.ActiveRules,
+		suppressions: suppressions,
+	})
+}
+
+func (l *Linter) refreshCacheForInputs(inputs []packageInput, issues []rules.Issue) ([]rules.Issue, error) {
+	if !l.Cache.enabledForRun() || len(inputs) == 0 {
+		return issues, nil
+	}
+
+	if !l.Cache.mutating {
+		_ = l.Cache.save(inputs, issues)
+		return issues, nil
+	}
+
+	refreshedInputs, changed, err := reloadPackageInputs(inputs)
+	if err != nil {
+		return issues, exception.InternalError("could not refresh package inputs after applying fixes: %w", err)
+	}
+
+	if !changed {
+		_ = l.Cache.save(refreshedInputs, issues)
+		return issues, nil
+	}
+
+	pkgFiles, pkgPaths, fset, suppressions, err := l.parsePackageInputsStrict(refreshedInputs)
+	if err != nil {
+		return issues, err
+	}
+
+	finalIssues, err := l.analyzePackageReadonly(pkgFiles, pkgPaths, fset, suppressions)
+	if err != nil {
+		return issues, err
+	}
+
+	_ = l.Cache.save(refreshedInputs, finalIssues)
+
+	return issues, nil
 }
 
 func (l *Linter) parsePackage(paths []string) ([]*ast.File, []string, *token.FileSet, map[string][]rules.Suppression) {
@@ -359,6 +418,26 @@ func (l *Linter) parsePackageInputs(inputs []packageInput) ([]*ast.File, []strin
 	}
 
 	return pkgFiles, pkgPaths, fset, suppressions, complete
+}
+
+func (l *Linter) parsePackageInputsStrict(inputs []packageInput) ([]*ast.File, []string, *token.FileSet, map[string][]rules.Suppression, error) {
+	fset := token.NewFileSet()
+	pkgFiles := make([]*ast.File, 0, len(inputs))
+	pkgPaths := make([]string, 0, len(inputs))
+	suppressions := make(map[string][]rules.Suppression, len(inputs))
+
+	for _, input := range inputs {
+		file, err := parser.ParseFile(fset, input.Path, input.Src, l.ParseMode)
+		if err != nil {
+			return nil, nil, nil, nil, exception.InternalError("applied fixes left %q invalid: %w", input.Path, err)
+		}
+
+		suppressions[input.Path] = rules.ProcessSuppressions(file.Comments, fset, file.Decls, file.Package)
+		pkgFiles = append(pkgFiles, file)
+		pkgPaths = append(pkgPaths, input.Path)
+	}
+
+	return pkgFiles, pkgPaths, fset, suppressions, nil
 }
 
 func (l *Linter) limitIssuesByTotal(issues []rules.Issue, totalIssues *int64) []rules.Issue {
@@ -470,4 +549,32 @@ func (l *Linter) walkPackages(root string, done <-chan struct{}, enqueue func(Pa
 	}
 
 	return walk(root)
+}
+
+func reloadPackageInputs(inputs []packageInput) ([]packageInput, bool, error) {
+	paths := make([]string, len(inputs))
+	for i := range inputs {
+		paths[i] = inputs[i].Path
+	}
+
+	refreshed, err := loadPackageInputs(paths)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return refreshed, packageInputsChanged(inputs, refreshed), nil
+}
+
+func packageInputsChanged(before, after []packageInput) bool {
+	if len(before) != len(after) {
+		return true
+	}
+
+	for i := range before {
+		if before[i].NormalizedPath != after[i].NormalizedPath || before[i].Hash != after[i].Hash {
+			return true
+		}
+	}
+
+	return false
 }

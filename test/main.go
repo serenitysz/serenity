@@ -6,15 +6,15 @@ package test
 import (
 	"context"
 	. "errors"
-	fmt "fmt"
+	"fmt"
 	"log"
-	math "math"
+	"math"
 )
 
 var reportNumber = 42
 var Exported_Value = 21
 
-type emptyMarker struct{
+type emptyMarker struct {
 }
 
 type Bad_Name struct {
@@ -30,11 +30,11 @@ func (receiver *Bad_Name) Bad_Method() {
 }
 
 func callExternal() error {
-	return fmt.Errorf("Bad external error.")
+	return fmt.Errorf("bad external error")
 }
 
 func GetNothing() error {
-	return fmt.Errorf("Bad getter error.")
+	return fmt.Errorf("bad getter error")
 }
 
 func useImports() {
@@ -83,7 +83,7 @@ func ambiguousReturn() (string, string, error) {
 func unwrapErr() error {
 	err := callExternal()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w", err)
 	}
 
 	return nil

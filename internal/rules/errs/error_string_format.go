@@ -52,7 +52,7 @@ func (r *ErrorStringFormatRule) Run(runner *rules.Runner, node ast.Node) {
 			continue
 		}
 
-		if runner.Cfg.ShouldAutofix() {
+		if runner.ShouldAutofix() {
 			runner.Modified = true
 
 			lit.Value = strconv.Quote(fixErrorString(msg))

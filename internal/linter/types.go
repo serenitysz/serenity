@@ -44,6 +44,7 @@ type AnalysisParams struct {
 	pkgPaths     []string
 	fset         *token.FileSet
 	maxIssues    int
+	autofix      bool
 	shouldStop   func(int) bool
 	rules        *ActiveRules
 	suppressions map[string][]rules.Suppression
@@ -68,6 +69,7 @@ type ActiveRules struct {
 	DeferStmt  []rules.Rule
 
 	NeedsConstAnalysis bool
+	HasAutofixRules    bool
 }
 
 func (a *ActiveRules) Run(runner *rules.Runner, node ast.Node) {
